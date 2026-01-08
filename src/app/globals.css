@@ -1,0 +1,102 @@
+@import "tailwindcss";
+
+:root {
+  --paper: #f7f1e6;
+  --ink: #14120f;
+  --muted: #4d4a44;
+  --on-ink: #fffdf8;
+  --sun: #f97316;
+  --mint: #1b9c7c;
+  --card: #fff5e8;
+  --border: #ded6c8;
+  --shadow: 0 20px 45px rgba(20, 18, 15, 0.18);
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-sun: var(--sun);
+  --color-mint: var(--mint);
+  --color-card: var(--card);
+  --color-border: var(--border);
+  --color-on-ink: var(--on-ink);
+  --font-display: var(--font-display);
+  --font-sans: var(--font-sans);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-height: 100vh;
+  background: radial-gradient(circle at top left, #fff7e6, transparent 45%),
+    radial-gradient(circle at 85% 25%, #f7f1e6, transparent 40%),
+    linear-gradient(140deg, #f5efe5 10%, #ece4d9 90%);
+  color: var(--ink);
+  font-family: var(--font-sans), sans-serif;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image: linear-gradient(
+      rgba(20, 18, 15, 0.06) 1px,
+      transparent 1px
+    ),
+    linear-gradient(90deg, rgba(20, 18, 15, 0.06) 1px, transparent 1px);
+  background-size: 32px 32px;
+  opacity: 0.35;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.panel {
+  background: var(--card);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  border-radius: 24px;
+}
+
+.chip {
+  border-radius: 999px;
+  border: 1px solid rgba(20, 18, 15, 0.2);
+  background: #fffdf8;
+  padding: 6px 14px;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.reveal {
+  animation: rise 0.7s ease-out both;
+}
+
+.reveal-delay-1 {
+  animation-delay: 0.12s;
+}
+
+.reveal-delay-2 {
+  animation-delay: 0.24s;
+}
+
+.reveal-delay-3 {
+  animation-delay: 0.36s;
+}

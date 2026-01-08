@@ -1,0 +1,59 @@
+import { NextResponse } from "next/server";
+import { getDb } from "@/lib/db";
+import { voteEvents } from "@/lib/events";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+export async function POST(
+  req: Request,
+  { params }: { params: Promise<{ code: string }> }
+) {
+  const { code } = await params;
+  const db = getDb();
+  const room = db
+    .prepare("SELECT closed_at FROM rooms WHERE code = ?")
+    .get(code.toUpperCase());
+
+  if (!room) {
+    return NextResponse.json({ error: "Room not found" }, { status: 404 });
+  }
+
+  if (room.closed_at) {
+    return NextResponse.json({ error: "Room closed" }, { status: 403 });
+  }
+
+  const body = await req.json().catch(() => ({}));
+  const voterName = typeof body?.voterName === "string" ? body.voterName : "";
+  const candidateName =
+    typeof body?.candidateName === "string" ? body.candidateName : "";
+
+  if (!voterName.trim() || !candidateName.trim()) {
+    return NextResponse.json(
+      { error: "Voter name and candidate are required" },
+      { status: 400 }
+    );
+  }
+
+  const id = crypto.randomUUID();
+  const createdAt = new Date().toISOString();
+
+  db.prepare(
+    "INSERT INTO votes (id, room_code, voter_name, candidate_name, created_at) VALUES (?, ?, ?, ?, ?)"
+  ).run(
+    id,
+    code.toUpperCase(),
+    voterName.trim(),
+    candidateName.trim(),
+    createdAt
+  );
+
+  voteEvents.emit("update", { code: code.toUpperCase() });
+
+  return NextResponse.json({
+    id,
+    voterName: voterName.trim(),
+    candidateName: candidateName.trim(),
+    createdAt,
+  });
+}
