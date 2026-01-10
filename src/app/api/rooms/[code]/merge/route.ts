@@ -24,7 +24,7 @@ export async function POST(
   }
 
   const body = await req.json().catch(() => ({}));
-  const sources = Array.isArray(body?.sourceCandidates)
+  const sources: unknown[] = Array.isArray(body?.sourceCandidates)
     ? body.sourceCandidates
     : [];
   const target = typeof body?.targetCandidate === "string"
@@ -32,8 +32,8 @@ export async function POST(
     : "";
 
   const cleanedSources = sources
-    .filter((item: unknown) => typeof item === "string")
-    .map((item: string) => item.trim())
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => item.trim())
     .filter(Boolean);
 
   const cleanedTarget = target.trim();
@@ -46,7 +46,7 @@ export async function POST(
   }
 
   const normalizedSources = Array.from(
-    new Set(cleanedSources.map((item) => normalize(item)))
+    new Set(cleanedSources.map((item: string) => normalize(item)))
   );
 
   db.prepare(
