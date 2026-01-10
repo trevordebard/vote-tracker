@@ -17,7 +17,7 @@ export async function POST(
 
   const room = db
     .prepare("SELECT candidates_json FROM rooms WHERE code = ?")
-    .get(roomCode);
+    .get(roomCode) as { candidates_json?: string | null } | undefined;
 
   if (!room) {
     return NextResponse.json({ error: "Room not found" }, { status: 404 });
