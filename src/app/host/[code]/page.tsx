@@ -134,6 +134,8 @@ export default function HostRoom() {
     );
   }
 
+  if (!room) return null;
+
   const isClosed = Boolean(room.closedAt);
 
   return (
