@@ -5,6 +5,10 @@ import { voteEvents } from "@/lib/events";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+type RoomRow = {
+  code: string;
+};
+
 export async function POST(
   _req: Request,
   { params }: { params: Promise<{ code: string }> }
@@ -13,7 +17,7 @@ export async function POST(
   const db = getDb();
   const room = db
     .prepare("SELECT code FROM rooms WHERE code = ?")
-    .get(code.toUpperCase());
+    .get(code.toUpperCase()) as RoomRow | undefined;
 
   if (!room) {
     return NextResponse.json({ error: "Room not found" }, { status: 404 });

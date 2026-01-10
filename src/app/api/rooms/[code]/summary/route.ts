@@ -9,6 +9,13 @@ type VoteRow = {
   candidate_name: string;
 };
 
+type RoomRow = {
+  code: string;
+  created_at: string;
+  closed_at: string | null;
+  candidates_json: string | null;
+};
+
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ code: string }> }
@@ -19,7 +26,7 @@ export async function GET(
     .prepare(
       "SELECT code, created_at, closed_at, candidates_json FROM rooms WHERE code = ?"
     )
-    .get(code.toUpperCase());
+    .get(code.toUpperCase()) as RoomRow | undefined;
 
   if (!room) {
     return NextResponse.json({ error: "Room not found" }, { status: 404 });
