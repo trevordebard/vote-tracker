@@ -70,6 +70,7 @@ export default function VoterRoom() {
   };
 
   const isClosed = Boolean(room?.closedAt);
+  const canVote = !isClosed && !submitted;
   const candidates = room?.candidates ?? [];
 
   if (!normalized) return null;
@@ -112,145 +113,149 @@ export default function VoterRoom() {
 
   return (
     <Shell>
-      <main className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
-        <section className="panel flex flex-col gap-6 p-8 reveal">
+      <main className="flex flex-col items-center">
+        <section className="panel w-full max-w-3xl flex flex-col gap-6 p-8 reveal">
           <p className="chip w-fit">Voting room</p>
-          <h1 className="text-3xl font-[family:var(--font-display)] text-ink">
-            Room {normalized}
-          </h1>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h1 className="text-3xl font-[family:var(--font-display)] text-ink">
+              Room {normalized}
+            </h1>
+            <p className="text-xs uppercase tracking-[0.3em] text-muted">
+              Step 1 · Name · Step 2 · Candidate · Step 3 · Submit
+            </p>
+          </div>
           <p className="text-muted">
-            Enter your name and the candidate you want to vote for. Votes are
-            anonymous to other voters but visible to the host.
+            Your vote is sent to the host only. Other voters never see results.
           </p>
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2">
-              <label className="text-xs uppercase tracking-[0.3em] text-muted">
-                Your name
-              </label>
-              <input
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                placeholder="Alex Johnson"
-                disabled={isClosed}
-                className="rounded-2xl border border-border bg-white/80 px-4 py-3 text-ink outline-none transition focus:border-ink disabled:opacity-60"
-              />
-            </div>
-            {candidates.length ? (
+          {submitted && !isClosed ? (
+            <section className="flex flex-col gap-4 rounded-3xl border border-border bg-white/80 p-6 text-ink">
+              <p className="text-sm uppercase tracking-[0.3em] text-muted">
+                Submission recorded
+              </p>
+              <h2 className="text-2xl font-[family:var(--font-display)]">
+                Thanks for voting!
+              </h2>
+              <p className="text-sm text-muted">
+                Your submission has been recorded. You can watch the votes come
+                in on the live tally board.
+              </p>
+              <Link
+                href={`/host/${normalized}`}
+                className="w-fit rounded-2xl bg-ink px-4 py-3 text-xs uppercase tracking-[0.3em] transition hover:-translate-y-0.5 hover:bg-black"
+                style={{ color: "var(--on-ink)" }}
+              >
+                Watch live tally
+              </Link>
+            </section>
+          ) : (
+            <form onSubmit={handleSubmit} className="flex flex-col gap-5">
               <div className="flex flex-col gap-2">
                 <label className="text-xs uppercase tracking-[0.3em] text-muted">
-                  Selected candidate
-                </label>
-                <div className="rounded-2xl border border-border bg-white/80 px-4 py-3 text-sm text-ink">
-                  {candidate.trim() || "Select a name from the list"}
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-2">
-                <label className="text-xs uppercase tracking-[0.3em] text-muted">
-                  Candidate
+                  Your name
                 </label>
                 <input
-                  value={candidate}
-                  onChange={(event) => setCandidate(event.target.value)}
-                  placeholder="Candidate name"
-                  disabled={isClosed}
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  placeholder="Alex Johnson"
+                  disabled={!canVote}
                   className="rounded-2xl border border-border bg-white/80 px-4 py-3 text-ink outline-none transition focus:border-ink disabled:opacity-60"
                 />
               </div>
-            )}
-            <button
-              type="submit"
-              disabled={isClosed}
-              className="rounded-2xl bg-ink px-4 py-3 text-sm uppercase tracking-[0.3em] text-on-ink transition hover:-translate-y-0.5 hover:bg-black disabled:opacity-60"
-            >
-              Submit vote
-            </button>
-            {submitted && !isClosed && (
-              <p className="text-sm text-mint">Vote received. Thank you.</p>
-            )}
-            {isClosed && (
-              <p className="text-sm text-muted">
-                Voting is closed for this room.
-              </p>
-            )}
-          </form>
-        </section>
 
-        <aside className="panel flex flex-col gap-6 p-8 reveal reveal-delay-1">
-          <div>
-            <p className="text-sm text-muted">Candidate list</p>
-            <h2 className="text-2xl font-[family:var(--font-display)] text-ink">
-              Choose or write in
-            </h2>
-            <p className="text-sm text-muted">
-              Hosts can pre-fill candidates, but you can always write in
-              someone new.
-            </p>
-          </div>
-          {candidates.length ? (
-            <div className="flex flex-col gap-3 text-sm text-ink">
-              {candidates.map((candidateName) => (
-                <label
-                  key={candidateName}
-                  className="flex items-center gap-3 rounded-2xl border border-border bg-white/80 px-4 py-3"
-                >
-                  <input
-                    type="radio"
-                    name="candidate"
-                    value={candidateName}
-                    checked={selectedCandidate === candidateName}
-                    onChange={() => {
-                      setSelectedCandidate(candidateName);
-                      setCandidate(candidateName);
-                      setWriteIn("");
-                    }}
-                    disabled={isClosed}
-                  />
-                  <span>{candidateName}</span>
-                </label>
-              ))}
-              <label className="flex flex-col gap-2 rounded-2xl border border-border bg-white/80 px-4 py-3">
-                <div className="flex items-center gap-3">
-                  <input
-                    type="radio"
-                    name="candidate"
-                    value="other"
-                    checked={selectedCandidate === "other"}
-                    onChange={() => {
-                      setSelectedCandidate("other");
-                      setCandidate(writeIn);
-                    }}
-                    disabled={isClosed}
-                  />
-                  <span>Write-in candidate</span>
+              {candidates.length ? (
+                <div className="flex flex-col gap-3">
+                  <label className="text-xs uppercase tracking-[0.3em] text-muted">
+                    Choose a candidate
+                  </label>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {candidates.map((candidateName) => (
+                      <label
+                        key={candidateName}
+                        className="flex items-center gap-3 rounded-2xl border border-border bg-white/80 px-4 py-3 text-sm text-ink"
+                      >
+                        <input
+                          type="radio"
+                          name="candidate"
+                          value={candidateName}
+                          checked={selectedCandidate === candidateName}
+                          onChange={() => {
+                            setSelectedCandidate(candidateName);
+                            setCandidate(candidateName);
+                            setWriteIn("");
+                          }}
+                          disabled={!canVote}
+                        />
+                        <span>{candidateName}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <label className="flex flex-col gap-2 rounded-2xl border border-border bg-white/80 px-4 py-3 text-sm text-ink">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="radio"
+                        name="candidate"
+                        value="other"
+                        checked={selectedCandidate === "other"}
+                        onChange={() => {
+                          setSelectedCandidate("other");
+                          setCandidate(writeIn);
+                        }}
+                        disabled={!canVote}
+                      />
+                      <span>Write in another name</span>
+                    </div>
+                    {selectedCandidate === "other" ? (
+                      <input
+                        value={writeIn}
+                        onChange={(event) => {
+                          setWriteIn(event.target.value);
+                          setCandidate(event.target.value);
+                        }}
+                        placeholder="Type a name"
+                        disabled={!canVote}
+                        className="rounded-2xl border border-border bg-white px-3 py-2 text-sm text-ink outline-none"
+                      />
+                    ) : null}
+                  </label>
                 </div>
-                {selectedCandidate === "other" ? (
+              ) : (
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs uppercase tracking-[0.3em] text-muted">
+                    Candidate name
+                  </label>
                   <input
-                    value={writeIn}
-                    onChange={(event) => {
-                      setWriteIn(event.target.value);
-                      setCandidate(event.target.value);
-                    }}
-                    placeholder="Type a name"
-                    disabled={isClosed}
-                    className="rounded-2xl border border-border bg-white px-3 py-2 text-sm text-ink outline-none"
+                    value={candidate}
+                    onChange={(event) => setCandidate(event.target.value)}
+                    placeholder="Candidate name"
+                    disabled={!canVote}
+                    className="rounded-2xl border border-border bg-white/80 px-4 py-3 text-ink outline-none transition focus:border-ink disabled:opacity-60"
                   />
-                ) : null}
-              </label>
-            </div>
-          ) : (
-            <div className="rounded-2xl border border-dashed border-border p-5 text-sm text-muted">
-              No preset candidates. Use the form to enter any name.
-            </div>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={!canVote}
+                className="rounded-2xl bg-ink px-4 py-3 text-sm uppercase tracking-[0.3em] text-on-ink transition hover:-translate-y-0.5 hover:bg-black disabled:opacity-60"
+              >
+                Submit vote
+              </button>
+              {isClosed && (
+                <p className="text-sm text-muted">
+                  Voting is closed for this room.
+                </p>
+              )}
+            </form>
           )}
+
           <Link
             href="/"
-            className="rounded-2xl border border-ink px-4 py-3 text-xs uppercase tracking-[0.3em] text-ink"
+            className="w-fit rounded-2xl border border-ink px-4 py-3 text-xs uppercase tracking-[0.3em] text-ink"
           >
             Back to home
           </Link>
-        </aside>
+        </section>
       </main>
     </Shell>
   );
