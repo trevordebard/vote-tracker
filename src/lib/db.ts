@@ -9,7 +9,8 @@ type GlobalDb = typeof globalThis & {
 const globalDb = globalThis as GlobalDb;
 
 const initDb = () => {
-  const dataDir = path.join(process.cwd(), "data");
+  const dataDir =
+    process.env.VOTE_TRACKER_DATA_DIR ?? path.join(process.cwd(), "data");
   if (!fs.existsSync(dataDir)) {
     fs.mkdirSync(dataDir, { recursive: true });
   }
@@ -55,4 +56,11 @@ export const getDb = () => {
     globalDb.__voteTrackerDb = initDb();
   }
   return globalDb.__voteTrackerDb;
+};
+
+export const resetDbForTests = () => {
+  if (globalDb.__voteTrackerDb) {
+    globalDb.__voteTrackerDb.close();
+    delete globalDb.__voteTrackerDb;
+  }
 };
