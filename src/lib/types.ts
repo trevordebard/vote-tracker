@@ -3,6 +3,7 @@ export type Room = {
   createdAt: string;
   closedAt?: string | null;
   candidates?: string[] | null;
+  allowWriteIns?: boolean | null;
 };
 
 export type Vote = {

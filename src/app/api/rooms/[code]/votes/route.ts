@@ -7,6 +7,8 @@ export const dynamic = "force-dynamic";
 
 type RoomRow = {
   closed_at: string | null;
+  candidates_json: string | null;
+  allow_write_ins: number | null;
 };
 
 export async function POST(
@@ -16,7 +18,7 @@ export async function POST(
   const { code } = await params;
   const db = getDb();
   const room = db
-    .prepare("SELECT closed_at FROM rooms WHERE code = ?")
+    .prepare("SELECT closed_at, candidates_json, allow_write_ins FROM rooms WHERE code = ?")
     .get(code.toUpperCase()) as RoomRow | undefined;
 
   if (!room) {
@@ -37,6 +39,23 @@ export async function POST(
       { error: "Voter name and candidate are required" },
       { status: 400 }
     );
+  }
+
+  const allowWriteIns = room.allow_write_ins !== 0;
+  if (!allowWriteIns) {
+    const candidates = room.candidates_json
+      ? (JSON.parse(room.candidates_json) as string[])
+      : [];
+    const normalizedCandidate = candidateName.trim().toUpperCase();
+    const isValid = candidates.some(
+      (candidate) => candidate.trim().toUpperCase() === normalizedCandidate
+    );
+    if (!isValid) {
+      return NextResponse.json(
+        { error: "Write-in candidates are not allowed for this room" },
+        { status: 400 }
+      );
+    }
   }
 
   const id = crypto.randomUUID();

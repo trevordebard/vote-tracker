@@ -21,7 +21,8 @@ const initDb = () => {
       code TEXT PRIMARY KEY,
       created_at TEXT NOT NULL,
       closed_at TEXT,
-      candidates_json TEXT
+      candidates_json TEXT,
+      allow_write_ins INTEGER NOT NULL DEFAULT 1
     );
 
     CREATE TABLE IF NOT EXISTS votes (
@@ -35,6 +36,17 @@ const initDb = () => {
 
     CREATE INDEX IF NOT EXISTS votes_room_code_idx ON votes(room_code);
   `);
+  const roomColumns = db
+    .prepare("PRAGMA table_info(rooms)")
+    .all() as Array<{ name: string }>;
+  const hasAllowWriteIns = roomColumns.some(
+    (column) => column.name === "allow_write_ins"
+  );
+  if (!hasAllowWriteIns) {
+    db.exec(
+      "ALTER TABLE rooms ADD COLUMN allow_write_ins INTEGER NOT NULL DEFAULT 1"
+    );
+  }
   return db;
 };
 

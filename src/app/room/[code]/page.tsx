@@ -72,6 +72,8 @@ export default function VoterRoom() {
   const isClosed = Boolean(room?.closedAt);
   const canVote = !isClosed && !submitted;
   const candidates = room?.candidates ?? [];
+  const allowWriteIns = room?.allowWriteIns ?? true;
+  const canSubmit = canVote && (allowWriteIns || candidates.length > 0);
 
   if (!normalized) return null;
 
@@ -190,36 +192,42 @@ export default function VoterRoom() {
                       </label>
                     ))}
                   </div>
-                  <label className="flex flex-col gap-2 rounded-2xl border border-border bg-white/80 px-4 py-3 text-sm text-ink">
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="radio"
-                        name="candidate"
-                        value="other"
-                        checked={selectedCandidate === "other"}
-                        onChange={() => {
-                          setSelectedCandidate("other");
-                          setCandidate(writeIn);
-                        }}
-                        disabled={!canVote}
-                      />
-                      <span>Write in another name</span>
-                    </div>
-                    {selectedCandidate === "other" ? (
-                      <input
-                        value={writeIn}
-                        onChange={(event) => {
-                          setWriteIn(event.target.value);
-                          setCandidate(event.target.value);
-                        }}
-                        placeholder="Type a name"
-                        disabled={!canVote}
-                        className="rounded-2xl border border-border bg-white px-3 py-2 text-sm text-ink outline-none"
-                      />
-                    ) : null}
-                  </label>
+                  {allowWriteIns ? (
+                    <label className="flex flex-col gap-2 rounded-2xl border border-border bg-white/80 px-4 py-3 text-sm text-ink">
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="radio"
+                          name="candidate"
+                          value="other"
+                          checked={selectedCandidate === "other"}
+                          onChange={() => {
+                            setSelectedCandidate("other");
+                            setCandidate(writeIn);
+                          }}
+                          disabled={!canVote}
+                        />
+                        <span>Write in another name</span>
+                      </div>
+                      {selectedCandidate === "other" ? (
+                        <input
+                          value={writeIn}
+                          onChange={(event) => {
+                            setWriteIn(event.target.value);
+                            setCandidate(event.target.value);
+                          }}
+                          placeholder="Type a name"
+                          disabled={!canVote}
+                          className="rounded-2xl border border-border bg-white px-3 py-2 text-sm text-ink outline-none"
+                        />
+                      ) : null}
+                    </label>
+                  ) : (
+                    <p className="text-xs text-muted">
+                      Write-in candidates are disabled for this room.
+                    </p>
+                  )}
                 </div>
-              ) : (
+              ) : allowWriteIns ? (
                 <div className="flex flex-col gap-2">
                   <label className="text-xs uppercase tracking-[0.3em] text-muted">
                     Candidate name
@@ -232,11 +240,15 @@ export default function VoterRoom() {
                     className="rounded-2xl border border-border bg-white/80 px-4 py-3 text-ink outline-none transition focus:border-ink disabled:opacity-60"
                   />
                 </div>
+              ) : (
+                <div className="rounded-2xl border border-border bg-white/80 px-4 py-3 text-sm text-muted">
+                  No candidates are available, and write-ins are disabled.
+                </div>
               )}
 
               <button
                 type="submit"
-                disabled={!canVote}
+                disabled={!canSubmit}
                 className="rounded-2xl bg-ink px-4 py-3 text-sm uppercase tracking-[0.3em] text-on-ink transition hover:-translate-y-0.5 hover:bg-black disabled:opacity-60"
               >
                 Submit vote

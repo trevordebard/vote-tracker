@@ -13,12 +13,12 @@ export default function Shell({ children }: ShellProps) {
           <Link href="/" className="flex items-center gap-3">
             <span className="chip">Vote Tracker</span>
             <span className="text-sm text-muted">
-              Internal rooms with live tally
+              Host a room or join a room
             </span>
           </Link>
           <nav className="flex items-center gap-4 text-sm text-muted">
-            <Link href="/">Home</Link>
             <Link href="/host">Host</Link>
+            <Link href="/#join">Join</Link>
           </nav>
         </header>
         {children}

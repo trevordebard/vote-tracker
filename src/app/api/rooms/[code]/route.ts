@@ -9,6 +9,7 @@ type RoomRow = {
   created_at: string;
   closed_at: string | null;
   candidates_json: string | null;
+  allow_write_ins: number | null;
 };
 
 export async function GET(
@@ -19,7 +20,7 @@ export async function GET(
   const db = getDb();
   const room = db
     .prepare(
-      "SELECT code, created_at, closed_at, candidates_json FROM rooms WHERE code = ?"
+      "SELECT code, created_at, closed_at, candidates_json, allow_write_ins FROM rooms WHERE code = ?"
     )
     .get(code.toUpperCase()) as RoomRow | undefined;
 
@@ -32,5 +33,6 @@ export async function GET(
     createdAt: room.created_at,
     closedAt: room.closed_at,
     candidates: room.candidates_json ? JSON.parse(room.candidates_json) : null,
+    allowWriteIns: room.allow_write_ins !== 0,
   });
 }

@@ -34,6 +34,8 @@ export async function POST(req: Request) {
   const db = getDb();
   const body = await req.json().catch(() => ({}));
   const candidates = sanitizeCandidates(body?.candidates);
+  const allowWriteIns =
+    typeof body?.allowWriteIns === "boolean" ? body.allowWriteIns : true;
 
   let code = generateCode();
   const exists = db.prepare("SELECT 1 FROM rooms WHERE code = ?");
@@ -44,13 +46,14 @@ export async function POST(req: Request) {
   const createdAt = new Date().toISOString();
   const candidatesJson = candidates ? JSON.stringify(candidates) : null;
   db.prepare(
-    "INSERT INTO rooms (code, created_at, candidates_json) VALUES (?, ?, ?)"
-  ).run(code, createdAt, candidatesJson);
+    "INSERT INTO rooms (code, created_at, candidates_json, allow_write_ins) VALUES (?, ?, ?, ?)"
+  ).run(code, createdAt, candidatesJson, allowWriteIns ? 1 : 0);
 
   return NextResponse.json({
     code,
     createdAt,
     closedAt: null,
     candidates: candidates ?? null,
+    allowWriteIns,
   });
 }
