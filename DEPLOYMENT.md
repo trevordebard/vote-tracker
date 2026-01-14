@@ -17,7 +17,7 @@ secrets in the repo.
 Deploys run via GitHub Actions:
 
 - Dev: every push to `main` -> `dev-vote-tracker.trevordebard.com`
-- Prod: manual workflow dispatch -> `vote-tracker.trevordebard.com`
+- Manual: deploy any branch/tag/SHA to dev or prod from the Actions UI
 
 ### One-time GitHub Actions setup
 
@@ -39,18 +39,19 @@ ssh root@157.180.37.245 "dokku ssh-keys:add github-actions ~/.ssh/vote-tracker-d
 cat ~/.ssh/vote-tracker-dokku
 ```
 
-4) Ensure the workflows exist:
+4) Ensure the workflow exists:
 
-- `/.github/workflows/deploy-dev.yml`
-- `/.github/workflows/deploy-prod.yml`
+- `/.github/workflows/deploy.yml`
 
-### Trigger a prod deploy
+### Trigger a manual deploy (dev or prod)
 
 In GitHub:
 
 1) Actions tab
-2) Select "Deploy Prod"
-3) Run workflow
+2) Select "Deploy"
+3) Run workflow and choose:
+   - `environment`: `dev` or `prod`
+   - `ref`: branch, tag, or SHA (defaults to `main`)
 
 ## Manual deploy (backup option)
 
