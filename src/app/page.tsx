@@ -76,7 +76,7 @@ export default function Home() {
               href="/host"
               className="inline-flex w-fit items-center rounded-2xl border border-ink px-4 py-3 text-xs uppercase tracking-[0.3em] text-ink transition hover:-translate-y-0.5"
             >
-              Go to host mode
+              Create Room
             </Link>
           </section>
         </section>
