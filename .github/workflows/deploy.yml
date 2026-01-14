@@ -65,7 +65,7 @@ jobs:
       - name: Deploy
         run: |
           git remote add dokku "dokku@${DOKKU_HOST}:${DOKKU_APP}"
-          git push dokku HEAD:main
+          git push --force dokku HEAD:main
         env:
           DOKKU_HOST: 157.180.37.245
           DOKKU_APP: ${{ steps.app.outputs.app }}
