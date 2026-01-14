@@ -19,6 +19,9 @@ Deploys run via GitHub Actions:
 - Dev: every push to `main` -> `dev-vote-tracker.trevordebard.com`
 - Manual: deploy any branch/tag/SHA to dev or prod from the Actions UI
 
+Note: The workflow force-pushes to Dokku and uses a full Git checkout to avoid
+`shallow update not allowed` errors.
+
 ### One-time GitHub Actions setup
 
 1) Create an SSH keypair for GitHub Actions:
@@ -53,6 +56,21 @@ In GitHub:
    - `environment`: `dev` or `prod`
    - `ref`: branch, tag, or SHA (defaults to `main`)
 
+## Deployment flow diagram
+
+```text
+Local/GitHub repo (main) ──push──▶ GitHub Actions (Deploy workflow)
+           │                                  │
+           │                                  ├─ deploy dev (auto on main)
+           │                                  │    dokku@157.180.37.245:vote-tracker-dev
+           │                                  │    https://dev-vote-tracker.trevordebard.com
+           │                                  │
+           └─ manual run (Actions UI) ────────┤
+                                              └─ deploy prod (manual)
+                                                   dokku@157.180.37.245:vote-tracker
+                                                   https://vote-tracker.trevordebard.com
+```
+
 ## Manual deploy (backup option)
 
 1) Make your changes locally.
@@ -74,6 +92,12 @@ git commit -m "Describe the change"
 
 ```bash
 git push dokku main
+```
+
+To deploy dev manually:
+
+```bash
+git push dokku-dev main
 ```
 
 Wait for the build output to finish. It should end with:
@@ -119,12 +143,14 @@ From your local repo:
 
 ```bash
 git remote add dokku dokku@157.180.37.245:vote-tracker
+git remote add dokku-dev dokku@157.180.37.245:vote-tracker-dev
 ```
 
 If the remote already exists:
 
 ```bash
 git remote set-url dokku dokku@157.180.37.245:vote-tracker
+git remote set-url dokku-dev dokku@157.180.37.245:vote-tracker-dev
 ```
 
 ## Common issues
