@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import Shell from "@/components/Shell";
 import type { Room } from "@/lib/types";
 
@@ -21,7 +21,7 @@ export default function VoterRoom() {
   const [submitted, setSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
     setIsLoading(true);
     const response = await fetch(`/api/rooms/${normalized}`, {
       cache: "no-store",
@@ -34,22 +34,25 @@ export default function VoterRoom() {
     const data = await response.json();
     setRoom(data);
     setIsLoading(false);
-  };
+  }, [normalized]);
 
   useEffect(() => {
     if (!normalized) return;
-    refresh();
+    const timeoutId = setTimeout(() => {
+      void refresh();
+    }, 0);
     const source = new EventSource(`/api/rooms/${normalized}/stream`);
     source.onmessage = () => {
-      refresh();
+      void refresh();
     };
     source.onerror = () => {
       source.close();
     };
     return () => {
+      clearTimeout(timeoutId);
       source.close();
     };
-  }, [normalized]);
+  }, [normalized, refresh]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();

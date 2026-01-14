@@ -59,7 +59,7 @@ export async function GET(
   });
 
   const tally = Array.from(grouped.entries())
-    .map(([candidateKey, data]) => ({
+    .map(([, data]) => ({
       candidate: data.name,
       count: data.count,
       voters: data.voters,

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Shell from "@/components/Shell";
 import type { Room, TallyEntry } from "@/lib/types";
 
@@ -23,7 +23,7 @@ export default function HostRoom() {
   const [mergeTarget, setMergeTarget] = useState("");
   const [isMerging, setIsMerging] = useState(false);
 
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
     setIsLoading(true);
     const response = await fetch(`/api/rooms/${normalized}/summary`, {
       cache: "no-store",
@@ -39,22 +39,25 @@ export default function HostRoom() {
     setWinner(data.winner);
     setTotalVotes(data.totalVotes);
     setIsLoading(false);
-  };
+  }, [normalized]);
 
   useEffect(() => {
     if (!normalized) return;
-    refresh();
+    const timeoutId = setTimeout(() => {
+      void refresh();
+    }, 0);
     const source = new EventSource(`/api/rooms/${normalized}/stream`);
     source.onmessage = () => {
-      refresh();
+      void refresh();
     };
     source.onerror = () => {
       source.close();
     };
     return () => {
+      clearTimeout(timeoutId);
       source.close();
     };
-  }, [normalized]);
+  }, [normalized, refresh]);
 
   const handleCopy = async () => {
     if (!normalized) return;
