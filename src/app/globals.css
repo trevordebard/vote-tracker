@@ -72,16 +72,14 @@
   --panel-primary-border: rgba(1, 15, 49, 0.14);
   --panel-primary-shadow: 0 30px 65px rgba(1, 15, 49, 0.26);
   --grid-line: rgba(1, 15, 49, 0.06);
-  --grid-opacity: 0.04;
+  --grid-opacity: 0.03;
   --chip-bg: #f3f6fd;
   --chip-border: rgba(1, 15, 49, 0.14);
   --chip-text: var(--ink);
   --accent: #ff8a2a;
   --cta-text: #0b1a3a;
   --header-ink: #f7f8fc;
-  --page-background: radial-gradient(circle at top left, #eff3ff, transparent 55%),
-    radial-gradient(circle at 85% 20%, #d9e4ff, transparent 50%),
-    linear-gradient(160deg, #dfe8ff 10%, #cdd8f5 90%);
+  --page-background: #010f31;
 }
 
 @theme inline {
