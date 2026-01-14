@@ -86,7 +86,7 @@ export default function VoterRoom() {
         <section className="panel flex flex-col gap-4 p-8 reveal">
           <p className="chip w-fit">Room not found</p>
           <h1 className="text-3xl font-[family:var(--font-display)] text-ink">
-            That code doesn't exist.
+            That code doesn&apos;t exist.
           </h1>
           <p className="text-muted">
             Check the code and try again, or head back to join another room.
@@ -134,19 +134,19 @@ export default function VoterRoom() {
           </p>
 
           {submitted && !isClosed ? (
-            <section className="flex flex-col gap-4 rounded-3xl border border-border bg-white/80 p-6 text-ink">
+            <section className="surface-soft flex flex-col gap-4 rounded-3xl border border-border p-6 text-ink">
               <p className="text-sm uppercase tracking-[0.3em] text-muted">
                 Vote submitted
               </p>
               <h2 className="text-2xl font-[family:var(--font-display)]">
-                Vote submitted. You're all set.
+                Vote submitted. You&apos;re all set.
               </h2>
               <p className="text-sm text-muted">
                 You can watch the votes come in on the live tally board.
               </p>
               <Link
                 href={`/host/${normalized}`}
-                className="w-fit rounded-2xl bg-ink px-4 py-3 text-xs uppercase tracking-[0.3em] transition hover:-translate-y-0.5 hover:bg-black"
+                className="w-fit rounded-2xl bg-ink px-4 py-3 text-xs uppercase tracking-[0.3em] transition hover:-translate-y-0.5 hover:opacity-90"
                 style={{ color: "var(--on-ink)" }}
               >
                 Watch live tally
@@ -163,7 +163,7 @@ export default function VoterRoom() {
                   onChange={(event) => setName(event.target.value)}
                   placeholder="Alex Johnson"
                   disabled={!canVote}
-                  className="rounded-2xl border border-border bg-white/80 px-4 py-3 text-ink outline-none transition focus:border-ink disabled:opacity-60"
+                  className="surface-soft rounded-2xl border border-border px-4 py-3 text-ink outline-none transition focus:border-ink disabled:opacity-60"
                 />
               </div>
 
@@ -176,7 +176,7 @@ export default function VoterRoom() {
                     {candidates.map((candidateName) => (
                       <label
                         key={candidateName}
-                        className="flex items-center gap-3 rounded-2xl border border-border bg-white/80 px-4 py-3 text-sm text-ink"
+                        className="surface-soft flex items-center gap-3 rounded-2xl border border-border px-4 py-3 text-sm text-ink"
                       >
                         <input
                           type="radio"
@@ -195,7 +195,7 @@ export default function VoterRoom() {
                     ))}
                   </div>
                   {allowWriteIns ? (
-                    <label className="flex flex-col gap-2 rounded-2xl border border-border bg-white/80 px-4 py-3 text-sm text-ink">
+                    <label className="surface-soft flex flex-col gap-2 rounded-2xl border border-border px-4 py-3 text-sm text-ink">
                       <div className="flex items-center gap-3">
                         <input
                           type="radio"
@@ -219,7 +219,7 @@ export default function VoterRoom() {
                           }}
                           placeholder="Type a name"
                           disabled={!canVote}
-                          className="rounded-2xl border border-border bg-white px-3 py-2 text-sm text-ink outline-none"
+                          className="surface rounded-2xl border border-border px-3 py-2 text-sm text-ink outline-none"
                         />
                       ) : null}
                     </label>
@@ -234,24 +234,24 @@ export default function VoterRoom() {
                   <label className="text-xs uppercase tracking-[0.3em] text-muted">
                     Candidate name
                   </label>
-                  <input
-                    value={candidate}
-                    onChange={(event) => setCandidate(event.target.value)}
-                    placeholder="Candidate name"
-                    disabled={!canVote}
-                    className="rounded-2xl border border-border bg-white/80 px-4 py-3 text-ink outline-none transition focus:border-ink disabled:opacity-60"
-                  />
-                </div>
-              ) : (
-                <div className="rounded-2xl border border-border bg-white/80 px-4 py-3 text-sm text-muted">
-                  No candidates are available, and write-ins are disabled.
-                </div>
-              )}
+                <input
+                  value={candidate}
+                  onChange={(event) => setCandidate(event.target.value)}
+                  placeholder="Candidate name"
+                  disabled={!canVote}
+                  className="surface-soft rounded-2xl border border-border px-4 py-3 text-ink outline-none transition focus:border-ink disabled:opacity-60"
+                />
+              </div>
+            ) : (
+              <div className="surface-soft rounded-2xl border border-border px-4 py-3 text-sm text-muted">
+                No candidates are available, and write-ins are disabled.
+              </div>
+            )}
 
               <button
                 type="submit"
                 disabled={!canSubmit}
-                className="rounded-2xl bg-ink px-4 py-3 text-sm uppercase tracking-[0.3em] text-on-ink transition hover:-translate-y-0.5 hover:bg-black disabled:opacity-60"
+                className="cta-primary rounded-2xl px-4 py-3 text-sm uppercase tracking-[0.3em] transition hover:-translate-y-0.5 hover:opacity-90 disabled:opacity-60"
               >
                 Submit vote
               </button>

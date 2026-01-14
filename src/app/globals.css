@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
 :root {
+  color-scheme: light;
   --paper: #f7f1e6;
   --ink: #14120f;
   --muted: #4d4a44;
@@ -8,8 +9,79 @@
   --sun: #f97316;
   --mint: #1b9c7c;
   --card: #fff5e8;
+  --card-rgb: 255 245 232;
   --border: #ded6c8;
   --shadow: 0 20px 45px rgba(20, 18, 15, 0.18);
+  --panel-primary: #fffaf2;
+  --panel-primary-border: rgba(20, 18, 15, 0.28);
+  --panel-primary-shadow: 0 28px 55px rgba(20, 18, 15, 0.22);
+  --grid-line: rgba(20, 18, 15, 0.06);
+  --grid-opacity: 0.35;
+  --chip-bg: #fffdf8;
+  --chip-border: rgba(20, 18, 15, 0.2);
+  --chip-text: var(--ink);
+  --accent: var(--sun);
+  --cta-text: var(--ink);
+  --header-ink: var(--muted);
+  --page-background: radial-gradient(circle at top left, #fff7e6, transparent 45%),
+    radial-gradient(circle at 85% 25%, #f7f1e6, transparent 40%),
+    linear-gradient(140deg, #f5efe5 10%, #ece4d9 90%);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper: #111315;
+  --ink: #f5f2ea;
+  --muted: #b7b2a6;
+  --on-ink: #0b0c0d;
+  --sun: #f6b35a;
+  --mint: #58c7a5;
+  --card: #1b1e22;
+  --card-rgb: 27 30 34;
+  --border: #2b2f36;
+  --shadow: 0 24px 55px rgba(0, 0, 0, 0.45);
+  --panel-primary: #20242a;
+  --panel-primary-border: rgba(245, 242, 234, 0.15);
+  --panel-primary-shadow: 0 28px 60px rgba(0, 0, 0, 0.55);
+  --grid-line: rgba(245, 242, 234, 0.06);
+  --grid-opacity: 0.2;
+  --chip-bg: #1e2329;
+  --chip-border: rgba(245, 242, 234, 0.12);
+  --chip-text: var(--ink);
+  --accent: #f6b35a;
+  --cta-text: var(--on-ink);
+  --header-ink: var(--muted);
+  --page-background: radial-gradient(circle at top left, #1a1d22, transparent 50%),
+    radial-gradient(circle at 80% 20%, #15181c, transparent 45%),
+    linear-gradient(160deg, #0d0f12 15%, #171a1f 85%);
+}
+
+:root[data-theme="blue"] {
+  color-scheme: light;
+  --paper: #ebe9f5;
+  --ink: #010f31;
+  --muted: #2b3f6d;
+  --on-ink: #f7f8fc;
+  --sun: #ff861e;
+  --mint: #2c75ff;
+  --card: #e7ecf8;
+  --card-rgb: 231 236 248;
+  --border: #c2cdea;
+  --shadow: 0 26px 55px rgba(1, 15, 49, 0.24);
+  --panel-primary: #eef2fb;
+  --panel-primary-border: rgba(1, 15, 49, 0.14);
+  --panel-primary-shadow: 0 30px 65px rgba(1, 15, 49, 0.26);
+  --grid-line: rgba(1, 15, 49, 0.06);
+  --grid-opacity: 0.04;
+  --chip-bg: #f3f6fd;
+  --chip-border: rgba(1, 15, 49, 0.14);
+  --chip-text: var(--ink);
+  --accent: #ff8a2a;
+  --cta-text: #0b1a3a;
+  --header-ink: #f7f8fc;
+  --page-background: radial-gradient(circle at top left, #eff3ff, transparent 55%),
+    radial-gradient(circle at 85% 20%, #d9e4ff, transparent 50%),
+    linear-gradient(160deg, #dfe8ff 10%, #cdd8f5 90%);
 }
 
 @theme inline {
@@ -31,9 +103,7 @@
 
 body {
   min-height: 100vh;
-  background: radial-gradient(circle at top left, #fff7e6, transparent 45%),
-    radial-gradient(circle at 85% 25%, #f7f1e6, transparent 40%),
-    linear-gradient(140deg, #f5efe5 10%, #ece4d9 90%);
+  background: var(--page-background);
   color: var(--ink);
   font-family: var(--font-sans), sans-serif;
 }
@@ -43,13 +113,10 @@ body::before {
   position: fixed;
   inset: 0;
   pointer-events: none;
-  background-image: linear-gradient(
-      rgba(20, 18, 15, 0.06) 1px,
-      transparent 1px
-    ),
-    linear-gradient(90deg, rgba(20, 18, 15, 0.06) 1px, transparent 1px);
+  background-image: linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
   background-size: 32px 32px;
-  opacity: 0.35;
+  opacity: var(--grid-opacity);
 }
 
 a {
@@ -65,19 +132,54 @@ a {
 }
 
 .panel-primary {
-  background: #fffaf2;
-  border: 1px solid rgba(20, 18, 15, 0.28);
-  box-shadow: 0 28px 55px rgba(20, 18, 15, 0.22);
+  background: var(--panel-primary);
+  border: 1px solid var(--panel-primary-border);
+  box-shadow: var(--panel-primary-shadow);
+}
+
+.site-header {
+  color: var(--header-ink);
+}
+
+.site-header a {
+  color: inherit;
+}
+
+.surface {
+  background: var(--card);
+}
+
+.surface-soft {
+  background: rgb(var(--card-rgb) / 0.8);
+}
+
+.surface-faint {
+  background: rgb(var(--card-rgb) / 0.6);
+}
+
+.surface-strong {
+  background: rgb(var(--card-rgb) / 0.9);
 }
 
 .chip {
   border-radius: 999px;
-  border: 1px solid rgba(20, 18, 15, 0.2);
-  background: #fffdf8;
+  border: 1px solid var(--chip-border);
+  background: var(--chip-bg);
   padding: 6px 14px;
   font-size: 12px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
+  color: var(--chip-text);
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--accent);
+}
+
+.cta-primary {
+  background: var(--accent);
+  color: var(--cta-text);
 }
 
 @keyframes rise {

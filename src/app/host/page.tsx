@@ -45,7 +45,7 @@ export default function HostLanding() {
               with the code and votes update instantly.
             </p>
           </div>
-          <label className="flex items-center gap-3 rounded-2xl border border-border bg-white/80 px-4 py-3 text-sm text-ink">
+          <label className="surface-soft flex items-center gap-3 rounded-2xl border border-border px-4 py-3 text-sm text-ink">
             <input
               type="checkbox"
               checked={allowWriteIns}
@@ -62,7 +62,7 @@ export default function HostLanding() {
               onChange={(event) => setCandidatesText(event.target.value)}
               placeholder="Add candidate names"
               rows={4}
-              className="rounded-2xl border border-border bg-white/80 px-4 py-3 text-sm text-ink outline-none transition focus:border-ink"
+              className="surface-soft rounded-2xl border border-border px-4 py-3 text-sm text-ink outline-none transition focus:border-ink"
             />
             <p>Example: Alex Kim, Jordan Lee, Sam Patel</p>
             <p>Separate names with commas or new lines.</p>
@@ -76,12 +76,12 @@ export default function HostLanding() {
             type="button"
             onClick={handleCreate}
             disabled={isCreating || !canCreate}
-            className="rounded-2xl bg-sun px-4 py-3 text-sm uppercase tracking-[0.3em] text-ink transition hover:-translate-y-0.5 hover:bg-[#ff8b37] disabled:opacity-60"
+            className="cta-primary rounded-2xl px-4 py-3 text-sm uppercase tracking-[0.3em] transition hover:-translate-y-0.5 hover:opacity-90 disabled:opacity-60"
           >
             {isCreating ? "Creating..." : "Create room"}
           </button>
           <p className="text-xs text-muted">
-            You'll get a shareable code and live results.
+            You&apos;ll get a shareable code and live results.
           </p>
         </section>
       </main>

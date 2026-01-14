@@ -168,14 +168,14 @@ export default function HostRoom() {
                 onClick={() => {
                   window.location.href = `/room/${normalized}`;
                 }}
-                className="rounded-2xl bg-ink px-4 py-2 text-xs uppercase tracking-[0.3em] text-white"
+                className="rounded-2xl bg-ink px-4 py-2 text-xs uppercase tracking-[0.3em] text-on-ink"
               >
                 Open voter view
               </button>
             </div>
           </div>
           <div className="grid gap-4">
-            <div className="rounded-2xl border border-border bg-white/80 p-5">
+            <div className="surface-soft rounded-2xl border border-border p-5">
               <p className="text-xs uppercase tracking-[0.3em] text-muted">
                 Status
               </p>
@@ -185,7 +185,7 @@ export default function HostRoom() {
               <p className="text-sm text-muted">Total votes: {totalVotes}</p>
             </div>
             {room.candidates?.length ? (
-              <div className="rounded-2xl border border-border bg-white/80 p-5">
+              <div className="surface-soft rounded-2xl border border-border p-5">
                 <p className="text-xs uppercase tracking-[0.3em] text-muted">
                   Candidates
                 </p>
@@ -193,7 +193,7 @@ export default function HostRoom() {
                   {room.candidates.map((candidate) => (
                     <span
                       key={candidate}
-                      className="rounded-full border border-border bg-white px-3 py-1"
+                      className="surface rounded-full border border-border px-3 py-1"
                     >
                       {candidate}
                     </span>
@@ -201,7 +201,7 @@ export default function HostRoom() {
                 </div>
               </div>
             ) : null}
-            <div className="rounded-2xl border border-border bg-white/80 p-5">
+            <div className="surface-soft rounded-2xl border border-border p-5">
               <p className="text-xs uppercase tracking-[0.3em] text-muted">
                 Current leader
               </p>
@@ -238,7 +238,7 @@ export default function HostRoom() {
             </p>
           </div>
 
-          <div className="rounded-2xl border border-border bg-white/80 p-5">
+          <div className="surface-soft rounded-2xl border border-border p-5">
             <p className="text-xs uppercase tracking-[0.3em] text-muted">
               Merge candidates
             </p>
@@ -250,13 +250,13 @@ export default function HostRoom() {
                 value={mergeTarget}
                 onChange={(event) => setMergeTarget(event.target.value)}
                 placeholder="Merged name"
-                className="min-w-[220px] flex-1 rounded-2xl border border-border bg-white px-4 py-2 text-sm text-ink outline-none"
+                className="surface min-w-[220px] flex-1 rounded-2xl border border-border px-4 py-2 text-sm text-ink outline-none"
               />
               <button
                 type="button"
                 onClick={handleMerge}
                 disabled={mergeSelection.length < 2 || !mergeTarget.trim() || isMerging}
-                className="rounded-2xl bg-ink px-4 py-2 text-xs uppercase tracking-[0.3em] text-white transition disabled:opacity-50"
+                className="rounded-2xl bg-ink px-4 py-2 text-xs uppercase tracking-[0.3em] text-on-ink transition disabled:opacity-50"
               >
                 {isMerging ? "Merging..." : "Merge selected"}
               </button>
@@ -276,7 +276,7 @@ export default function HostRoom() {
           </div>
 
           {tally.length === 0 ? (
-            <div className="flex items-center gap-4 rounded-2xl border border-dashed border-border bg-white/60 p-6 text-muted">
+            <div className="surface-faint flex items-center gap-4 rounded-2xl border border-dashed border-border p-6 text-muted">
               <svg
                 aria-hidden="true"
                 className="h-10 w-10 text-muted"
@@ -304,7 +304,7 @@ export default function HostRoom() {
               {tally.map((entry) => (
                 <div
                   key={entry.candidate}
-                  className="rounded-2xl border border-border bg-white/80 p-5"
+                  className="surface-soft rounded-2xl border border-border p-5"
                 >
                   <div className="flex items-center justify-between">
                     <label className="flex items-center gap-3">
@@ -323,7 +323,7 @@ export default function HostRoom() {
                     {entry.voters.map((voter) => (
                       <span
                         key={`${entry.candidate}-${voter}`}
-                        className="rounded-full border border-border bg-white px-3 py-1"
+                        className="surface rounded-full border border-border px-3 py-1"
                       >
                         {voter}
                       </span>
@@ -354,7 +354,7 @@ export default function HostRoom() {
                   setShowEndModal(false);
                   await handleEndVoting();
                 }}
-                className="rounded-2xl bg-ink px-4 py-2 text-xs uppercase tracking-[0.3em] text-on-ink transition hover:-translate-y-0.5 hover:bg-black"
+                className="rounded-2xl bg-ink px-4 py-2 text-xs uppercase tracking-[0.3em] text-on-ink transition hover:-translate-y-0.5 hover:opacity-90"
               >
                 End voting
               </button>
