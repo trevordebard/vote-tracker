@@ -34,9 +34,9 @@ export async function POST(
   const candidateName =
     typeof body?.candidateName === "string" ? body.candidateName : "";
 
-  if (!voterName.trim() || !candidateName.trim()) {
+  if (!candidateName.trim()) {
     return NextResponse.json(
-      { error: "Voter name and candidate are required" },
+      { error: "Candidate is required" },
       { status: 400 }
     );
   }
@@ -61,12 +61,14 @@ export async function POST(
   const id = crypto.randomUUID();
   const createdAt = new Date().toISOString();
 
+  const resolvedVoterName = voterName.trim() || "Anonymous";
+
   db.prepare(
     "INSERT INTO votes (id, room_code, voter_name, candidate_name, created_at) VALUES (?, ?, ?, ?, ?)"
   ).run(
     id,
     code.toUpperCase(),
-    voterName.trim(),
+    resolvedVoterName,
     candidateName.trim(),
     createdAt
   );
@@ -75,7 +77,7 @@ export async function POST(
 
   return NextResponse.json({
     id,
-    voterName: voterName.trim(),
+    voterName: resolvedVoterName,
     candidateName: candidateName.trim(),
     createdAt,
   });

@@ -58,7 +58,7 @@ export default function VoterRoom() {
     event.preventDefault();
     const voterName = name.trim();
     const candidateName = candidate.trim();
-    if (!voterName || !candidateName) return;
+    if (!candidateName) return;
     const response = await fetch(`/api/rooms/${normalized}/votes`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -76,7 +76,7 @@ export default function VoterRoom() {
   const canVote = !isClosed && !submitted;
   const candidates = room?.candidates ?? [];
   const allowWriteIns = room?.allowWriteIns ?? true;
-  const canSubmit = canVote && (allowWriteIns || candidates.length > 0);
+  const canSubmit = canVote && Boolean(candidate.trim());
 
   if (!normalized) return null;
 
@@ -86,10 +86,10 @@ export default function VoterRoom() {
         <section className="panel flex flex-col gap-4 p-8 reveal">
           <p className="chip w-fit">Room not found</p>
           <h1 className="text-3xl font-[family:var(--font-display)] text-ink">
-            That voting room does not exist.
+            That code doesn't exist.
           </h1>
           <p className="text-muted">
-            Ask the host for a valid code, or head back to join another room.
+            Check the code and try again, or head back to join another room.
           </p>
           <Link
             href="/"
@@ -126,7 +126,7 @@ export default function VoterRoom() {
               Room {normalized}
             </h1>
             <p className="text-xs uppercase tracking-[0.3em] text-muted">
-              Step 1 · Name · Step 2 · Candidate · Step 3 · Submit
+              Step 1: Your name · Step 2: Candidate · Step 3: Submit
             </p>
           </div>
           <p className="text-muted">
@@ -136,14 +136,13 @@ export default function VoterRoom() {
           {submitted && !isClosed ? (
             <section className="flex flex-col gap-4 rounded-3xl border border-border bg-white/80 p-6 text-ink">
               <p className="text-sm uppercase tracking-[0.3em] text-muted">
-                Submission recorded
+                Vote submitted
               </p>
               <h2 className="text-2xl font-[family:var(--font-display)]">
-                Thanks for voting!
+                Vote submitted. You're all set.
               </h2>
               <p className="text-sm text-muted">
-                Your submission has been recorded. You can watch the votes come
-                in on the live tally board.
+                You can watch the votes come in on the live tally board.
               </p>
               <Link
                 href={`/host/${normalized}`}
@@ -157,7 +156,7 @@ export default function VoterRoom() {
             <form onSubmit={handleSubmit} className="flex flex-col gap-5">
               <div className="flex flex-col gap-2">
                 <label className="text-xs uppercase tracking-[0.3em] text-muted">
-                  Your name
+                  Your name (optional)
                 </label>
                 <input
                   value={name}

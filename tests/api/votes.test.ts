@@ -74,6 +74,37 @@ describe("votes API", () => {
     expect(summaryBody.winner.candidate).toBe("Alex");
   });
 
+  it("allows optional voter names and records anonymous votes", async () => {
+    const createResponse = await createRoom(
+      new Request("http://localhost/api/rooms", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ candidates: ["Alex"], allowWriteIns: false }),
+      })
+    );
+    const { code } = await createResponse.json();
+
+    const voteResponse = await submitVote(
+      new Request("http://localhost", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ voterName: "", candidateName: "Alex" }),
+      }),
+      { params: Promise.resolve({ code }) }
+    );
+
+    expect(voteResponse.status).toBe(200);
+    const voteBody = await voteResponse.json();
+    expect(voteBody.voterName).toBe("Anonymous");
+
+    const summaryResponse = await getSummary(new Request("http://localhost"), {
+      params: Promise.resolve({ code }),
+    });
+    const summaryBody = await summaryResponse.json();
+
+    expect(summaryBody.tally[0].voters).toContain("Anonymous");
+  });
+
   it("blocks votes after a room is closed", async () => {
     const createResponse = await createRoom(
       new Request("http://localhost/api/rooms", {

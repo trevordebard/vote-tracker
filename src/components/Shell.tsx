@@ -12,9 +12,6 @@ export default function Shell({ children }: ShellProps) {
         <header className="flex flex-wrap items-center justify-between gap-6">
           <Link href="/" className="flex items-center gap-3">
             <span className="chip">Vote Tracker</span>
-            <span className="text-sm text-muted">
-              Host a room or join a room
-            </span>
           </Link>
           <nav className="flex items-center gap-4 text-sm text-muted">
             <Link href="/host">Host</Link>

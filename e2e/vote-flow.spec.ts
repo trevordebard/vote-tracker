@@ -11,7 +11,9 @@ test("host creates a room and a voter submits a vote", async ({ page }) => {
   await page.getByPlaceholder("Alex Johnson").fill("Jamie");
   await page.getByPlaceholder("Candidate name").fill("Taylor");
   await page.getByRole("button", { name: /submit vote/i }).click();
-  await expect(page.getByText(/thanks for voting/i)).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: /vote submitted/i })
+  ).toBeVisible();
 
   await page.goto(`/host/${code}`);
   await expect(page.getByText("Total votes: 1")).toBeVisible();

@@ -22,17 +22,17 @@ export default function Home() {
         <section className="panel flex flex-col gap-4 p-10 reveal">
           <p className="chip w-fit">Vote Tracker</p>
           <h1 className="text-balance text-4xl font-[family:var(--font-display)] text-ink sm:text-5xl">
-            Start a vote in minutes.
+            Vote together in seconds.
           </h1>
           <p className="max-w-2xl text-base text-muted sm:text-lg">
-            Create a room to collect votes, or enter a code to join.
+            Join with a code or create a room.
           </p>
         </section>
 
-        <section className="grid items-start gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+        <section className="grid items-start gap-6 lg:grid-cols-[1.3fr_0.7fr]">
           <section
             id="join"
-            className="panel flex flex-col gap-6 p-8 reveal"
+            className="panel panel-primary flex flex-col gap-6 p-8 reveal"
           >
             <div>
               <p className="text-sm text-muted">Join a room</p>
@@ -50,8 +50,14 @@ export default function Home() {
                 </label>
                 <input
                   value={roomCode}
-                  onChange={(event) => setRoomCode(event.target.value)}
+                  onChange={(event) => {
+                    const sanitized = event.target.value
+                      .replace(/\s+/g, "")
+                      .toUpperCase();
+                    setRoomCode(sanitized);
+                  }}
                   placeholder="ABC123"
+                  autoFocus
                   className="rounded-2xl border border-border bg-white/80 px-4 py-3 text-lg uppercase tracking-[0.2em] text-ink outline-none ring-0 transition focus:border-ink"
                 />
               </div>
@@ -61,6 +67,9 @@ export default function Home() {
               >
                 Join room
               </button>
+              <p className="text-xs text-muted lg:col-span-2">
+                6 characters. Case-insensitive.
+              </p>
             </form>
           </section>
 

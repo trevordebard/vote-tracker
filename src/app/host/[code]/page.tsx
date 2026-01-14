@@ -22,6 +22,7 @@ export default function HostRoom() {
   const [mergeSelection, setMergeSelection] = useState<string[]>([]);
   const [mergeTarget, setMergeTarget] = useState("");
   const [isMerging, setIsMerging] = useState(false);
+  const [showEndModal, setShowEndModal] = useState(false);
 
   const refresh = useCallback(async () => {
     setIsLoading(true);
@@ -66,7 +67,7 @@ export default function HostRoom() {
     setTimeout(() => setCopied(false), 1400);
   };
 
-  const handleClose = async () => {
+  const handleEndVoting = async () => {
     await fetch(`/api/rooms/${normalized}/close`, { method: "POST" });
     refresh();
   };
@@ -151,8 +152,8 @@ export default function HostRoom() {
               Room {normalized}
             </h1>
             <p className="text-muted">
-              Share the code and watch the tally update in real time. Close the
-              room when you are ready to lock votes.
+              Share the code and watch the tally update in real time. End the
+              vote when you are ready to lock submissions.
             </p>
             <div className="flex flex-wrap items-center gap-3">
               <button
@@ -205,19 +206,21 @@ export default function HostRoom() {
                 Current leader
               </p>
               <p className="mt-2 text-lg text-ink">
-                {winner ? winner.candidate : "No votes yet"}
+                {winner ? winner.candidate : "Waiting for first vote..."}
               </p>
               <p className="text-sm text-muted">
-                {winner ? `${winner.count} votes` : "Waiting for votes"}
+                {winner
+                  ? `${winner.count} votes`
+                  : "Waiting for first vote..."}
               </p>
             </div>
             <button
               type="button"
-              onClick={handleClose}
+              onClick={() => setShowEndModal(true)}
               disabled={isClosed}
               className="rounded-2xl bg-mint px-4 py-3 text-xs uppercase tracking-[0.3em] text-paper transition disabled:opacity-50"
             >
-              {isClosed ? "Room closed" : "Close voting"}
+              {isClosed ? "Room closed" : "End voting"}
             </button>
           </div>
         </section>
@@ -273,8 +276,28 @@ export default function HostRoom() {
           </div>
 
           {tally.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-border p-6 text-muted">
-              No votes yet. Share the room code to start collecting votes.
+            <div className="flex items-center gap-4 rounded-2xl border border-dashed border-border bg-white/60 p-6 text-muted">
+              <svg
+                aria-hidden="true"
+                className="h-10 w-10 text-muted"
+                viewBox="0 0 48 48"
+                fill="none"
+              >
+                <circle
+                  cx="24"
+                  cy="24"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                />
+                <path
+                  d="M24 6v6M24 36v6M6 24h6M36 24h6M11 11l4 4M33 33l4 4M37 11l-4 4M15 33l-4 4"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+              </svg>
+              <p>No votes yet. Share the room code to start voting.</p>
             </div>
           ) : (
             <div className="grid gap-4 lg:grid-cols-2">
@@ -312,6 +335,40 @@ export default function HostRoom() {
           )}
         </section>
       </main>
+      {showEndModal ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 px-6">
+          <div className="panel w-full max-w-md p-6">
+            <p className="text-xs uppercase tracking-[0.3em] text-muted">
+              Confirmation
+            </p>
+            <h2 className="mt-2 text-2xl font-[family:var(--font-display)] text-ink">
+              End voting?
+            </h2>
+            <p className="mt-3 text-sm text-muted">
+              Votes will be locked and no new votes will be accepted.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={async () => {
+                  setShowEndModal(false);
+                  await handleEndVoting();
+                }}
+                className="rounded-2xl bg-ink px-4 py-2 text-xs uppercase tracking-[0.3em] text-on-ink transition hover:-translate-y-0.5 hover:bg-black"
+              >
+                End voting
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowEndModal(false)}
+                className="rounded-2xl border border-ink px-4 py-2 text-xs uppercase tracking-[0.3em] text-ink"
+              >
+                Keep voting
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </Shell>
   );
 }

@@ -33,8 +33,8 @@ export default function HostLanding() {
 
   return (
     <Shell>
-      <main className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
-        <section className="panel flex flex-col gap-6 p-8 reveal">
+      <main className="flex flex-col items-center">
+        <section className="panel flex w-full max-w-3xl flex-col gap-6 p-8 reveal">
           <div className="flex flex-col gap-4">
             <p className="chip w-fit">Host Mode</p>
             <h1 className="text-3xl font-[family:var(--font-display)] text-ink sm:text-4xl">
@@ -45,19 +45,6 @@ export default function HostLanding() {
               with the code and votes update instantly.
             </p>
           </div>
-          <div className="flex flex-col gap-3 text-xs text-muted">
-            <label className="uppercase tracking-[0.3em]">
-              Optional candidates
-            </label>
-            <textarea
-              value={candidatesText}
-              onChange={(event) => setCandidatesText(event.target.value)}
-              placeholder="Alex Kim, Jordan Lee, Sam Patel"
-              rows={4}
-              className="rounded-2xl border border-border bg-white/80 px-4 py-3 text-sm text-ink outline-none transition focus:border-ink"
-            />
-            <p>Separate names with commas or new lines.</p>
-          </div>
           <label className="flex items-center gap-3 rounded-2xl border border-border bg-white/80 px-4 py-3 text-sm text-ink">
             <input
               type="checkbox"
@@ -66,6 +53,20 @@ export default function HostLanding() {
             />
             Allow write-in candidates
           </label>
+          <div className="flex flex-col gap-3 text-xs text-muted">
+            <label className="uppercase tracking-[0.3em]">
+              Candidate list (optional)
+            </label>
+            <textarea
+              value={candidatesText}
+              onChange={(event) => setCandidatesText(event.target.value)}
+              placeholder="Add candidate names"
+              rows={4}
+              className="rounded-2xl border border-border bg-white/80 px-4 py-3 text-sm text-ink outline-none transition focus:border-ink"
+            />
+            <p>Example: Alex Kim, Jordan Lee, Sam Patel</p>
+            <p>Separate names with commas or new lines.</p>
+          </div>
           {!allowWriteIns && candidates.length === 0 ? (
             <p className="text-xs text-muted">
               Add at least one candidate when write-ins are disabled.
@@ -79,39 +80,8 @@ export default function HostLanding() {
           >
             {isCreating ? "Creating..." : "Create room"}
           </button>
-        </section>
-
-        <section className="panel flex flex-col gap-5 p-8 text-sm text-muted reveal reveal-delay-1">
-          <div>
-            <p className="text-sm text-muted">How it works</p>
-            <h2 className="text-2xl font-[family:var(--font-display)] text-ink">
-              Two steps to start voting.
-            </h2>
-          </div>
-          <div className="grid gap-4">
-            <div className="rounded-2xl border border-border bg-white/70 p-4">
-              <p className="text-xs uppercase tracking-[0.3em] text-muted">
-                Step 1
-              </p>
-              <p className="mt-2 text-ink">
-                Create a room and copy the code.
-              </p>
-            </div>
-            <div className="rounded-2xl border border-border bg-white/70 p-4">
-              <p className="text-xs uppercase tracking-[0.3em] text-muted">
-                Step 2
-              </p>
-              <p className="mt-2 text-ink">
-                Share it with the group to start the vote.
-              </p>
-            </div>
-          </div>
-          <p className="text-xs uppercase tracking-[0.3em] text-muted">
-            Tip
-          </p>
-          <p className="text-ink">
-            Write-ins are on by default. Turn them off to limit votes to your
-            list.
+          <p className="text-xs text-muted">
+            You'll get a shareable code and live results.
           </p>
         </section>
       </main>
