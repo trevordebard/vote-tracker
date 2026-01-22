@@ -1,4 +1,5 @@
 import { voteEvents } from "@/lib/events";
+import { getRoomSummary } from "@/lib/roomSummary";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,11 +20,18 @@ export async function GET(
         );
       };
 
+      const initialSummary = getRoomSummary(normalized);
       send({ type: "connected" });
+      if (initialSummary) {
+        send({ type: "summary", summary: initialSummary });
+      }
 
       const listener = (event: { code?: string }) => {
         if (event.code !== normalized) return;
-        send({ type: "update" });
+        const summary = getRoomSummary(normalized);
+        if (summary) {
+          send({ type: "summary", summary });
+        }
       };
 
       voteEvents.on("update", listener);

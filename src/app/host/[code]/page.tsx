@@ -23,9 +23,29 @@ export default function HostRoom() {
   const [mergeTarget, setMergeTarget] = useState("");
   const [isMerging, setIsMerging] = useState(false);
   const [showEndModal, setShowEndModal] = useState(false);
+  const [streamStatus, setStreamStatus] = useState<"connected" | "reconnecting">(
+    "connected"
+  );
 
-  const refresh = useCallback(async () => {
-    setIsLoading(true);
+  const applySummary = useCallback(
+    (data: {
+      room: Room;
+      tally: TallyEntry[];
+      winner: TallyEntry | null;
+      totalVotes: number;
+    }) => {
+      setRoom(data.room);
+      setTally(data.tally);
+      setWinner(data.winner);
+      setTotalVotes(data.totalVotes);
+    },
+    []
+  );
+
+  const refresh = useCallback(async (options?: { showLoading?: boolean }) => {
+    if (options?.showLoading) {
+      setIsLoading(true);
+    }
     const response = await fetch(`/api/rooms/${normalized}/summary`, {
       cache: "no-store",
     });
@@ -35,30 +55,46 @@ export default function HostRoom() {
       return;
     }
     const data = await response.json();
-    setRoom(data.room);
-    setTally(data.tally);
-    setWinner(data.winner);
-    setTotalVotes(data.totalVotes);
+    applySummary(data);
     setIsLoading(false);
-  }, [normalized]);
+  }, [applySummary, normalized]);
 
   useEffect(() => {
     if (!normalized) return;
     const timeoutId = setTimeout(() => {
-      void refresh();
+      void refresh({ showLoading: true });
     }, 0);
     const source = new EventSource(`/api/rooms/${normalized}/stream`);
-    source.onmessage = () => {
-      void refresh();
+    source.onopen = () => {
+      setStreamStatus("connected");
+    };
+    source.onmessage = (message) => {
+      try {
+        const data = JSON.parse(message.data) as {
+          type?: string;
+          summary?: {
+            room: Room;
+            tally: TallyEntry[];
+            winner: TallyEntry | null;
+            totalVotes: number;
+          };
+        };
+        if (data.type === "summary" && data.summary) {
+          applySummary(data.summary);
+          setIsLoading(false);
+        }
+      } catch {
+        // ignore malformed messages
+      }
     };
     source.onerror = () => {
-      source.close();
+      setStreamStatus("reconnecting");
     };
     return () => {
       clearTimeout(timeoutId);
       source.close();
     };
-  }, [normalized, refresh]);
+  }, [applySummary, normalized, refresh]);
 
   const handleCopy = async () => {
     if (!normalized) return;
@@ -141,6 +177,10 @@ export default function HostRoom() {
   if (!room) return null;
 
   const isClosed = Boolean(room.closedAt);
+  const topCount = tally[0]?.count ?? 0;
+  const tiedLeaders =
+    topCount > 0 ? tally.filter((entry) => entry.count === topCount) : [];
+  const isTie = tiedLeaders.length > 1;
 
   return (
     <Shell>
@@ -206,11 +246,17 @@ export default function HostRoom() {
                 Current leader
               </p>
               <p className="mt-2 text-lg text-ink">
-                {winner ? winner.candidate : "Waiting for first vote..."}
+                {winner
+                  ? isTie
+                    ? `Tie: ${tiedLeaders.map((entry) => entry.candidate).join(", ")}`
+                    : winner.candidate
+                  : "Waiting for first vote..."}
               </p>
               <p className="text-sm text-muted">
                 {winner
-                  ? `${winner.count} votes`
+                  ? isTie
+                    ? `Tied at ${topCount} votes`
+                    : `${winner.count} votes`
                   : "Waiting for first vote..."}
               </p>
             </div>
@@ -233,9 +279,16 @@ export default function HostRoom() {
                 Votes by candidate
               </h2>
             </div>
-            <p className="text-xs uppercase tracking-[0.3em] text-muted">
-              {totalVotes} total
-            </p>
+            <div className="flex flex-col items-end gap-1">
+              <p className="text-xs uppercase tracking-[0.3em] text-muted">
+                {totalVotes} total
+              </p>
+              {streamStatus === "reconnecting" ? (
+                <p className="text-xs uppercase tracking-[0.3em] text-muted">
+                  Reconnecting...
+                </p>
+              ) : null}
+            </div>
           </div>
 
           <div className="surface-soft rounded-2xl border border-border p-5">
@@ -313,8 +366,13 @@ export default function HostRoom() {
                         checked={mergeSelection.includes(entry.candidate)}
                         onChange={() => toggleMergeSelection(entry.candidate)}
                       />
-                      <span className="text-lg text-ink">
+                      <span className="flex flex-wrap items-center gap-2 text-lg text-ink">
                         {entry.candidate}
+                        {isTie && entry.count === topCount ? (
+                          <span className="chip text-[0.6rem] uppercase tracking-[0.3em]">
+                            Tied lead
+                          </span>
+                        ) : null}
                       </span>
                     </label>
                     <p className="text-sm text-muted">{entry.count} votes</p>
