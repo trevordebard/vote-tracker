@@ -12,7 +12,7 @@ test("host creates a room and a voter submits a vote", async ({ page }) => {
   await page.getByPlaceholder("Candidate name").fill("Taylor");
   await page.getByRole("button", { name: /submit vote/i }).click();
   await expect(
-    page.getByRole("heading", { name: /vote submitted/i })
+    page.getByRole("heading", { name: /votes submitted/i })
   ).toBeVisible();
 
   await page.goto(`/host/${code}`);
