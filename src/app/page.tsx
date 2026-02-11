@@ -79,7 +79,7 @@ export default function Home() {
               Need to create a new room?
             </h2>
             <p className="text-sm text-muted">
-              Start a vote, add optional candidates, and get a shareable code.
+              Start a vote, add roles, and get a shareable voter link.
             </p>
             <Link
               href="/host"

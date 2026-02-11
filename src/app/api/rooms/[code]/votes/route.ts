@@ -8,7 +8,13 @@ export const dynamic = "force-dynamic";
 type RoomRow = {
   closed_at: string | null;
   candidates_json: string | null;
+  roles_json: string | null;
   allow_write_ins: number | null;
+};
+
+type VoteInput = {
+  roleName: string;
+  candidateName: string;
 };
 
 export async function POST(
@@ -18,7 +24,9 @@ export async function POST(
   const { code } = await params;
   const db = getDb();
   const room = db
-    .prepare("SELECT closed_at, candidates_json, allow_write_ins FROM rooms WHERE code = ?")
+    .prepare(
+      "SELECT closed_at, candidates_json, roles_json, allow_write_ins FROM rooms WHERE code = ?"
+    )
     .get(code.toUpperCase()) as RoomRow | undefined;
 
   if (!room) {
@@ -31,54 +39,111 @@ export async function POST(
 
   const body = await req.json().catch(() => ({}));
   const voterName = typeof body?.voterName === "string" ? body.voterName : "";
-  const candidateName =
-    typeof body?.candidateName === "string" ? body.candidateName : "";
+  const roomRoles = room.roles_json
+    ? (JSON.parse(room.roles_json) as string[])
+    : ["General"];
+  const knownRoles = roomRoles.length ? roomRoles : ["General"];
 
-  if (!candidateName.trim()) {
+  const votesInput: VoteInput[] = Array.isArray(body?.votes)
+    ? body.votes
+        .filter(
+          (item: unknown): item is { roleName?: unknown; candidateName?: unknown } =>
+            Boolean(item) && typeof item === "object"
+        )
+        .map((item) => ({
+          roleName: typeof item.roleName === "string" ? item.roleName.trim() : "",
+          candidateName:
+            typeof item.candidateName === "string" ? item.candidateName.trim() : "",
+        }))
+        .filter((item) => item.roleName && item.candidateName)
+    : [
+        {
+          roleName:
+            typeof body?.roleName === "string" && body.roleName.trim()
+              ? body.roleName.trim()
+              : knownRoles[0],
+          candidateName:
+            typeof body?.candidateName === "string" ? body.candidateName.trim() : "",
+        },
+      ].filter((item) => item.candidateName);
+
+  if (!votesInput.length) {
     return NextResponse.json(
-      { error: "Candidate is required" },
+      { error: "At least one role vote is required" },
+      { status: 400 }
+    );
+  }
+
+  const normalizedRoles = new Set(knownRoles.map((role) => role.trim().toUpperCase()));
+  const invalidRole = votesInput.find(
+    (vote) => !normalizedRoles.has(vote.roleName.trim().toUpperCase())
+  );
+  if (invalidRole) {
+    return NextResponse.json(
+      { error: `Unknown role: ${invalidRole.roleName}` },
       { status: 400 }
     );
   }
 
   const allowWriteIns = room.allow_write_ins !== 0;
+  const candidates = room.candidates_json
+    ? (JSON.parse(room.candidates_json) as string[])
+    : [];
   if (!allowWriteIns) {
-    const candidates = room.candidates_json
-      ? (JSON.parse(room.candidates_json) as string[])
-      : [];
-    const normalizedCandidate = candidateName.trim().toUpperCase();
-    const isValid = candidates.some(
-      (candidate) => candidate.trim().toUpperCase() === normalizedCandidate
-    );
-    if (!isValid) {
-      return NextResponse.json(
-        { error: "Write-in candidates are not allowed for this room" },
-        { status: 400 }
+    for (const vote of votesInput) {
+      const normalizedCandidate = vote.candidateName.trim().toUpperCase();
+      const isValid = candidates.some(
+        (candidate) => candidate.trim().toUpperCase() === normalizedCandidate
       );
+      if (!isValid) {
+        return NextResponse.json(
+          { error: "Write-in candidates are not allowed for this room" },
+          { status: 400 }
+        );
+      }
     }
   }
 
-  const id = crypto.randomUUID();
-  const createdAt = new Date().toISOString();
-
   const resolvedVoterName = voterName.trim() || "Anonymous";
-
-  db.prepare(
-    "INSERT INTO votes (id, room_code, voter_name, candidate_name, created_at) VALUES (?, ?, ?, ?, ?)"
-  ).run(
-    id,
-    code.toUpperCase(),
-    resolvedVoterName,
-    candidateName.trim(),
-    createdAt
+  const roomCode = code.toUpperCase();
+  const insertVote = db.prepare(
+    "INSERT INTO votes (id, room_code, voter_name, candidate_name, role_name, created_at) VALUES (?, ?, ?, ?, ?, ?)"
   );
+  const submitMany = db.transaction((entries: VoteInput[]) => {
+    return entries.map((entry) => {
+      const id = crypto.randomUUID();
+      const createdAt = new Date().toISOString();
+      insertVote.run(
+        id,
+        roomCode,
+        resolvedVoterName,
+        entry.candidateName.trim(),
+        entry.roleName.trim(),
+        createdAt
+      );
+      return {
+        id,
+        voterName: resolvedVoterName,
+        roleName: entry.roleName.trim(),
+        candidateName: entry.candidateName.trim(),
+        createdAt,
+      };
+    });
+  });
+  const insertedVotes = submitMany(votesInput);
 
-  voteEvents.emit("update", { code: code.toUpperCase() });
+  voteEvents.emit("update", { code: roomCode });
+
+  if (
+    insertedVotes.length === 1 &&
+    !Array.isArray(body?.votes) &&
+    typeof body?.candidateName === "string"
+  ) {
+    return NextResponse.json(insertedVotes[0]);
+  }
 
   return NextResponse.json({
-    id,
     voterName: resolvedVoterName,
-    candidateName: candidateName.trim(),
-    createdAt,
+    votes: insertedVotes,
   });
 }

@@ -69,9 +69,12 @@ describe("votes API", () => {
       params: Promise.resolve({ code }),
     });
     const summaryBody = await summaryResponse.json();
+    const general = summaryBody.roleTallies.find(
+      (entry: { role: string }) => entry.role === "General"
+    );
 
     expect(summaryBody.totalVotes).toBe(1);
-    expect(summaryBody.winner.candidate).toBe("Alex");
+    expect(general.winner.candidate).toBe("Alex");
   });
 
   it("allows optional voter names and records anonymous votes", async () => {
@@ -101,8 +104,11 @@ describe("votes API", () => {
       params: Promise.resolve({ code }),
     });
     const summaryBody = await summaryResponse.json();
+    const general = summaryBody.roleTallies.find(
+      (entry: { role: string }) => entry.role === "General"
+    );
 
-    expect(summaryBody.tally[0].voters).toContain("Anonymous");
+    expect(general.tally[0].voters).toContain("Anonymous");
   });
 
   it("blocks votes after a room is closed", async () => {
@@ -180,8 +186,58 @@ describe("votes API", () => {
       params: Promise.resolve({ code }),
     });
     const summaryBody = await summaryResponse.json();
+    const general = summaryBody.roleTallies.find(
+      (entry: { role: string }) => entry.role === "General"
+    );
 
     expect(summaryBody.totalVotes).toBe(2);
-    expect(summaryBody.tally[0].candidate).toBe("Gamma");
+    expect(general.tally[0].candidate).toBe("Gamma");
+  });
+
+  it("records one vote per role in a single submission", async () => {
+    const createResponse = await createRoom(
+      new Request("http://localhost/api/rooms", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          roles: ["Secretary", "Facilitator"],
+          candidates: ["Alex", "Sam"],
+          allowWriteIns: false,
+        }),
+      })
+    );
+    const { code } = await createResponse.json();
+
+    const voteResponse = await submitVote(
+      new Request("http://localhost", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          voterName: "Jamie",
+          votes: [
+            { roleName: "Secretary", candidateName: "Alex" },
+            { roleName: "Facilitator", candidateName: "Sam" },
+          ],
+        }),
+      }),
+      { params: Promise.resolve({ code }) }
+    );
+
+    expect(voteResponse.status).toBe(200);
+
+    const summaryResponse = await getSummary(new Request("http://localhost"), {
+      params: Promise.resolve({ code }),
+    });
+    const summaryBody = await summaryResponse.json();
+    const secretary = summaryBody.roleTallies.find(
+      (entry: { role: string }) => entry.role === "Secretary"
+    );
+    const facilitator = summaryBody.roleTallies.find(
+      (entry: { role: string }) => entry.role === "Facilitator"
+    );
+
+    expect(summaryBody.totalVotes).toBe(2);
+    expect(secretary.tally[0].candidate).toBe("Alex");
+    expect(facilitator.tally[0].candidate).toBe("Sam");
   });
 });

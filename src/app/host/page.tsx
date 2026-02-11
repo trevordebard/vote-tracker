@@ -7,6 +7,8 @@ import Shell from "@/components/Shell";
 export default function HostLanding() {
   const router = useRouter();
   const [candidatesText, setCandidatesText] = useState("");
+  const [rolesText, setRolesText] = useState("General");
+  const [existingRoomCode, setExistingRoomCode] = useState("");
   const [isCreating, setIsCreating] = useState(false);
   const [allowWriteIns, setAllowWriteIns] = useState(true);
 
@@ -14,16 +16,22 @@ export default function HostLanding() {
     .split(/[\n,]+/)
     .map((item) => item.trim())
     .filter(Boolean);
+  const roles = rolesText
+    .split(/[\n,]+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
   const canCreate = allowWriteIns || candidates.length > 0;
+  const canOpenExisting = existingRoomCode.trim().length > 0;
 
   const handleCreate = async () => {
     if (isCreating) return;
     if (!canCreate) return;
+    if (roles.length === 0) return;
     setIsCreating(true);
     const response = await fetch("/api/rooms", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ candidates, allowWriteIns }),
+      body: JSON.stringify({ candidates, roles, allowWriteIns }),
     });
     setIsCreating(false);
     if (!response.ok) return;
@@ -36,14 +44,26 @@ export default function HostLanding() {
       <main className="flex flex-col items-center">
         <section className="panel flex w-full max-w-3xl flex-col gap-6 p-8 reveal">
           <div className="flex flex-col gap-4">
-            <p className="chip w-fit">Host Mode</p>
             <h1 className="text-3xl font-[family:var(--font-display)] text-ink sm:text-4xl">
-              Create a room, then share the code.
+              Create a room, then share the voter link.
             </h1>
             <p className="text-muted">
-              You will get a shareable code and a live tally board. Guests join
-              with the code and votes update instantly.
+              Define the roles being voted on, optionally add a candidate list,
+              and open one live dashboard for all results.
             </p>
+          </div>
+          <div className="flex flex-col gap-3 text-xs text-muted">
+            <label className="uppercase tracking-[0.3em]">
+              Roles to vote for
+            </label>
+            <textarea
+              value={rolesText}
+              onChange={(event) => setRolesText(event.target.value)}
+              placeholder="Secretary, Facilitator"
+              rows={3}
+              className="surface-soft rounded-2xl border border-border px-4 py-3 text-sm text-ink outline-none transition focus:border-ink"
+            />
+            <p>Separate roles with commas or new lines.</p>
           </div>
           <label className="surface-soft flex items-center gap-3 rounded-2xl border border-border px-4 py-3 text-sm text-ink">
             <input
@@ -71,18 +91,50 @@ export default function HostLanding() {
             <p className="text-xs text-muted">
               Add at least one candidate when write-ins are disabled.
             </p>
+          ) : roles.length === 0 ? (
+            <p className="text-xs text-muted">
+              Add at least one role before creating the room.
+            </p>
           ) : null}
           <button
             type="button"
             onClick={handleCreate}
-            disabled={isCreating || !canCreate}
+            disabled={isCreating || !canCreate || roles.length === 0}
             className="cta-primary rounded-2xl px-4 py-3 text-sm uppercase tracking-[0.3em] transition hover:-translate-y-0.5 hover:opacity-90 disabled:opacity-60"
           >
             {isCreating ? "Creating..." : "Create room"}
           </button>
           <p className="text-xs text-muted">
-            You&apos;ll get a shareable code and live results.
+            You&apos;ll get one shareable voter link and live results per role.
           </p>
+          <div className="surface-soft flex flex-col gap-3 rounded-2xl border border-border p-4">
+            <p className="text-xs uppercase tracking-[0.3em] text-muted">
+              Return to an existing room
+            </p>
+            <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+              <input
+                value={existingRoomCode}
+                onChange={(event) => {
+                  const sanitized = event.target.value
+                    .replace(/\s+/g, "")
+                    .toUpperCase();
+                  setExistingRoomCode(sanitized);
+                }}
+                placeholder="ABC123"
+                className="surface rounded-2xl border border-border px-4 py-3 text-sm uppercase tracking-[0.2em] text-ink outline-none transition focus:border-ink"
+              />
+              <button
+                type="button"
+                onClick={() =>
+                  router.push(`/host/${existingRoomCode.trim().toUpperCase()}`)
+                }
+                disabled={!canOpenExisting}
+                className="rounded-2xl border border-ink px-4 py-3 text-xs uppercase tracking-[0.3em] text-ink disabled:opacity-50"
+              >
+                Open dashboard
+              </button>
+            </div>
+          </div>
         </section>
       </main>
     </Shell>

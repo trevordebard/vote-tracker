@@ -30,6 +30,7 @@ export async function POST(
   const target = typeof body?.targetCandidate === "string"
     ? body.targetCandidate
     : "";
+  const roleName = typeof body?.roleName === "string" ? body.roleName.trim() : "";
 
   const cleanedSources = sources
     .filter((item): item is string => typeof item === "string")
@@ -49,14 +50,21 @@ export async function POST(
     new Set(cleanedSources.map((item: string) => normalize(item)))
   );
 
+  const roleFilter = roleName ? "AND UPPER(TRIM(role_name)) = ?" : "";
   db.prepare(
     `UPDATE votes
      SET candidate_name = ?
      WHERE room_code = ?
        AND UPPER(TRIM(candidate_name)) IN (${normalizedSources
          .map(() => "?")
-         .join(",")})`
-  ).run(cleanedTarget, roomCode, ...normalizedSources);
+         .join(",")})
+       ${roleFilter}`
+  ).run(
+    cleanedTarget,
+    roomCode,
+    ...normalizedSources,
+    ...(roleName ? [normalize(roleName)] : [])
+  );
 
   if (room.candidates_json) {
     const candidates = JSON.parse(room.candidates_json) as string[];

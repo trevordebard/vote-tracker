@@ -4,7 +4,13 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Shell from "@/components/Shell";
-import type { Room, TallyEntry } from "@/lib/types";
+import type { RoleSummary, Room, TallyEntry } from "@/lib/types";
+
+type RoomSummaryPayload = {
+  room: Room;
+  roleTallies: RoleSummary[];
+  totalVotes: number;
+};
 
 export default function HostRoom() {
   const params = useParams();
@@ -14,9 +20,9 @@ export default function HostRoom() {
   );
   const normalized = (code ?? "").toUpperCase();
   const [room, setRoom] = useState<Room | undefined>();
-  const [tally, setTally] = useState<TallyEntry[]>([]);
-  const [winner, setWinner] = useState<TallyEntry | null>(null);
+  const [roleTallies, setRoleTallies] = useState<RoleSummary[]>([]);
   const [totalVotes, setTotalVotes] = useState(0);
+  const [activeRole, setActiveRole] = useState("");
   const [copied, setCopied] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [mergeSelection, setMergeSelection] = useState<string[]>([]);
@@ -27,37 +33,37 @@ export default function HostRoom() {
     "connected"
   );
 
-  const applySummary = useCallback(
-    (data: {
-      room: Room;
-      tally: TallyEntry[];
-      winner: TallyEntry | null;
-      totalVotes: number;
-    }) => {
-      setRoom(data.room);
-      setTally(data.tally);
-      setWinner(data.winner);
-      setTotalVotes(data.totalVotes);
-    },
-    []
-  );
-
-  const refresh = useCallback(async (options?: { showLoading?: boolean }) => {
-    if (options?.showLoading) {
-      setIsLoading(true);
-    }
-    const response = await fetch(`/api/rooms/${normalized}/summary`, {
-      cache: "no-store",
+  const applySummary = useCallback((data: RoomSummaryPayload) => {
+    setRoom(data.room);
+    setRoleTallies(data.roleTallies);
+    setTotalVotes(data.totalVotes);
+    setActiveRole((current) => {
+      if (current && data.roleTallies.some((entry) => entry.role === current)) {
+        return current;
+      }
+      return data.roleTallies[0]?.role ?? "";
     });
-    if (!response.ok) {
-      setRoom(undefined);
+  }, []);
+
+  const refresh = useCallback(
+    async (options?: { showLoading?: boolean }) => {
+      if (options?.showLoading) {
+        setIsLoading(true);
+      }
+      const response = await fetch(`/api/rooms/${normalized}/summary`, {
+        cache: "no-store",
+      });
+      if (!response.ok) {
+        setRoom(undefined);
+        setIsLoading(false);
+        return;
+      }
+      const data = (await response.json()) as RoomSummaryPayload;
+      applySummary(data);
       setIsLoading(false);
-      return;
-    }
-    const data = await response.json();
-    applySummary(data);
-    setIsLoading(false);
-  }, [applySummary, normalized]);
+    },
+    [applySummary, normalized]
+  );
 
   useEffect(() => {
     if (!normalized) return;
@@ -72,12 +78,7 @@ export default function HostRoom() {
       try {
         const data = JSON.parse(message.data) as {
           type?: string;
-          summary?: {
-            room: Room;
-            tally: TallyEntry[];
-            winner: TallyEntry | null;
-            totalVotes: number;
-          };
+          summary?: RoomSummaryPayload;
         };
         if (data.type === "summary" && data.summary) {
           applySummary(data.summary);
@@ -98,14 +99,15 @@ export default function HostRoom() {
 
   const handleCopy = async () => {
     if (!normalized) return;
-    await navigator.clipboard.writeText(normalized);
+    const voterLink = `${window.location.origin}/room/${normalized}`;
+    await navigator.clipboard.writeText(voterLink);
     setCopied(true);
     setTimeout(() => setCopied(false), 1400);
   };
 
   const handleEndVoting = async () => {
     await fetch(`/api/rooms/${normalized}/close`, { method: "POST" });
-    refresh();
+    void refresh();
   };
 
   const toggleMergeSelection = (candidate: string) => {
@@ -120,7 +122,9 @@ export default function HostRoom() {
   };
 
   const handleMerge = async () => {
-    if (mergeSelection.length < 2 || !mergeTarget.trim()) return;
+    if (mergeSelection.length < 2 || !mergeTarget.trim() || !activeRole.trim()) {
+      return;
+    }
     setIsMerging(true);
     await fetch(`/api/rooms/${normalized}/merge`, {
       method: "POST",
@@ -128,12 +132,13 @@ export default function HostRoom() {
       body: JSON.stringify({
         sourceCandidates: mergeSelection,
         targetCandidate: mergeTarget.trim(),
+        roleName: activeRole,
       }),
     });
     setIsMerging(false);
     setMergeSelection([]);
     setMergeTarget("");
-    refresh();
+    void refresh();
   };
 
   if (!normalized) return null;
@@ -177,9 +182,16 @@ export default function HostRoom() {
   if (!room) return null;
 
   const isClosed = Boolean(room.closedAt);
-  const topCount = tally[0]?.count ?? 0;
+  const currentRoleSummary =
+    roleTallies.find((entry) => entry.role === activeRole) ?? roleTallies[0];
+  const currentTally = currentRoleSummary?.tally ?? [];
+  const winner = currentRoleSummary?.winner ?? null;
+  const roleVotes = currentRoleSummary?.totalVotes ?? 0;
+  const topCount = currentTally[0]?.count ?? 0;
   const tiedLeaders =
-    topCount > 0 ? tally.filter((entry) => entry.count === topCount) : [];
+    topCount > 0
+      ? currentTally.filter((entry) => entry.count === topCount)
+      : [];
   const isTie = tiedLeaders.length > 1;
 
   return (
@@ -187,13 +199,12 @@ export default function HostRoom() {
       <main className="flex flex-col gap-8">
         <section className="panel grid gap-6 p-8 lg:grid-cols-[1.1fr_0.9fr] reveal">
           <div className="flex flex-col gap-4">
-            <p className="chip w-fit">Host dashboard</p>
             <h1 className="text-3xl font-[family:var(--font-display)] text-ink sm:text-4xl">
               Room {normalized}
             </h1>
             <p className="text-muted">
-              Share the code and watch the tally update in real time. End the
-              vote when you are ready to lock submissions.
+              Share the voter link and watch each role tally update in real
+              time. End the vote when you are ready to lock submissions.
             </p>
             <div className="flex flex-wrap items-center gap-3">
               <button
@@ -201,14 +212,15 @@ export default function HostRoom() {
                 onClick={handleCopy}
                 className="rounded-2xl border border-ink px-4 py-2 text-xs uppercase tracking-[0.3em] text-ink"
               >
-                {copied ? "Copied" : "Copy code"}
+                {copied ? "Link copied" : "Copy voter link"}
               </button>
               <button
                 type="button"
                 onClick={() => {
                   window.location.href = `/room/${normalized}`;
                 }}
-                className="rounded-2xl bg-ink px-4 py-2 text-xs uppercase tracking-[0.3em] text-on-ink"
+                className="rounded-2xl bg-ink px-4 py-2 text-xs uppercase tracking-[0.3em]"
+                style={{ color: "var(--on-ink)" }}
               >
                 Open voter view
               </button>
@@ -223,6 +235,9 @@ export default function HostRoom() {
                 {isClosed ? "Voting closed" : "Live voting"}
               </p>
               <p className="text-sm text-muted">Total votes: {totalVotes}</p>
+              <p className="text-sm text-muted">
+                Active role votes: {roleVotes}
+              </p>
             </div>
             {room.candidates?.length ? (
               <div className="surface-soft rounded-2xl border border-border p-5">
@@ -243,7 +258,7 @@ export default function HostRoom() {
             ) : null}
             <div className="surface-soft rounded-2xl border border-border p-5">
               <p className="text-xs uppercase tracking-[0.3em] text-muted">
-                Current leader
+                Current leader ({currentRoleSummary?.role ?? "Role"})
               </p>
               <p className="mt-2 text-lg text-ink">
                 {winner
@@ -272,28 +287,50 @@ export default function HostRoom() {
         </section>
 
         <section className="panel flex flex-col gap-6 p-8 reveal reveal-delay-1">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-sm text-muted">Live tally</p>
-              <h2 className="text-2xl font-[family:var(--font-display)] text-ink">
-                Votes by candidate
-              </h2>
-            </div>
-            <div className="flex flex-col items-end gap-1">
-              <p className="text-xs uppercase tracking-[0.3em] text-muted">
-                {totalVotes} total
-              </p>
-              {streamStatus === "reconnecting" ? (
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm text-muted">Live tally</p>
+                <h2 className="text-2xl font-[family:var(--font-display)] text-ink">
+                  Votes by candidate
+                </h2>
+              </div>
+              <div className="flex flex-col items-end gap-1">
                 <p className="text-xs uppercase tracking-[0.3em] text-muted">
-                  Reconnecting...
+                  {totalVotes} total
                 </p>
-              ) : null}
+                {streamStatus === "reconnecting" ? (
+                  <p className="text-xs uppercase tracking-[0.3em] text-muted">
+                    Reconnecting...
+                  </p>
+                ) : null}
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {roleTallies.map((entry) => (
+                <button
+                  key={entry.role}
+                  type="button"
+                  onClick={() => {
+                    setActiveRole(entry.role);
+                    setMergeSelection([]);
+                    setMergeTarget("");
+                  }}
+                  className={`rounded-2xl border px-4 py-2 text-xs uppercase tracking-[0.3em] transition ${
+                    activeRole === entry.role
+                      ? "border-ink bg-ink text-on-ink"
+                      : "border-border text-ink"
+                  }`}
+                >
+                  {entry.role}
+                </button>
+              ))}
             </div>
           </div>
 
           <div className="surface-soft rounded-2xl border border-border p-5">
             <p className="text-xs uppercase tracking-[0.3em] text-muted">
-              Merge candidates
+              Merge candidates ({currentRoleSummary?.role ?? "Role"})
             </p>
             <p className="mt-2 text-sm text-muted">
               Select two or more candidates, then choose the final name.
@@ -308,7 +345,12 @@ export default function HostRoom() {
               <button
                 type="button"
                 onClick={handleMerge}
-                disabled={mergeSelection.length < 2 || !mergeTarget.trim() || isMerging}
+                disabled={
+                  mergeSelection.length < 2 ||
+                  !mergeTarget.trim() ||
+                  isMerging ||
+                  !activeRole
+                }
                 className="rounded-2xl bg-ink px-4 py-2 text-xs uppercase tracking-[0.3em] text-on-ink transition disabled:opacity-50"
               >
                 {isMerging ? "Merging..." : "Merge selected"}
@@ -328,7 +370,7 @@ export default function HostRoom() {
             </div>
           </div>
 
-          {tally.length === 0 ? (
+          {currentTally.length === 0 ? (
             <div className="surface-faint flex items-center gap-4 rounded-2xl border border-dashed border-border p-6 text-muted">
               <svg
                 aria-hidden="true"
@@ -350,11 +392,14 @@ export default function HostRoom() {
                   strokeLinecap="round"
                 />
               </svg>
-              <p>No votes yet. Share the room code to start voting.</p>
+              <p>
+                No votes yet for {currentRoleSummary?.role ?? "this role"}.
+                Share the voter link to start voting.
+              </p>
             </div>
           ) : (
             <div className="grid gap-4 lg:grid-cols-2">
-              {tally.map((entry) => (
+              {currentTally.map((entry: TallyEntry) => (
                 <div
                   key={entry.candidate}
                   className="surface-soft rounded-2xl border border-border p-5"

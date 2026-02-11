@@ -20,6 +20,7 @@ describe("rooms API", () => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        roles: ["Secretary", " Facilitator ", "secretary", ""],
         candidates: ["Alex", "  Sam  ", "alex", ""],
         allowWriteIns: false,
       }),
@@ -31,6 +32,7 @@ describe("rooms API", () => {
 
     expect(body.code).toHaveLength(6);
     expect(body.allowWriteIns).toBe(false);
+    expect(body.roles).toEqual(["Secretary", "Facilitator"]);
     expect(body.candidates).toEqual(["Alex", "Sam"]);
   });
 

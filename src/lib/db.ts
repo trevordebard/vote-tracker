@@ -23,6 +23,7 @@ const initDb = () => {
       created_at TEXT NOT NULL,
       closed_at TEXT,
       candidates_json TEXT,
+      roles_json TEXT,
       allow_write_ins INTEGER NOT NULL DEFAULT 1
     );
 
@@ -31,6 +32,7 @@ const initDb = () => {
       room_code TEXT NOT NULL,
       voter_name TEXT NOT NULL,
       candidate_name TEXT NOT NULL,
+      role_name TEXT NOT NULL DEFAULT 'General',
       created_at TEXT NOT NULL,
       FOREIGN KEY(room_code) REFERENCES rooms(code)
     );
@@ -48,6 +50,22 @@ const initDb = () => {
       "ALTER TABLE rooms ADD COLUMN allow_write_ins INTEGER NOT NULL DEFAULT 1"
     );
   }
+  const hasRoles = roomColumns.some((column) => column.name === "roles_json");
+  if (!hasRoles) {
+    db.exec("ALTER TABLE rooms ADD COLUMN roles_json TEXT");
+  }
+  const voteColumns = db
+    .prepare("PRAGMA table_info(votes)")
+    .all() as Array<{ name: string }>;
+  const hasRoleName = voteColumns.some((column) => column.name === "role_name");
+  if (!hasRoleName) {
+    db.exec(
+      "ALTER TABLE votes ADD COLUMN role_name TEXT NOT NULL DEFAULT 'General'"
+    );
+  }
+  db.exec(
+    "UPDATE votes SET role_name = 'General' WHERE role_name IS NULL OR TRIM(role_name) = ''"
+  );
   return db;
 };
 

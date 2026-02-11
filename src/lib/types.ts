@@ -4,12 +4,14 @@ export type Room = {
   closedAt?: string | null;
   candidates?: string[] | null;
   allowWriteIns?: boolean | null;
+  roles?: string[] | null;
 };
 
 export type Vote = {
   id: string;
   voterName: string;
   candidateName: string;
+  roleName: string;
   createdAt: string;
 };
 
@@ -17,4 +19,11 @@ export type TallyEntry = {
   candidate: string;
   count: number;
   voters: string[];
+};
+
+export type RoleSummary = {
+  role: string;
+  tally: TallyEntry[];
+  winner: TallyEntry | null;
+  totalVotes: number;
 };
