@@ -12,6 +12,7 @@ vi.mock("next/navigation", () => ({
 describe("Home page", () => {
   beforeEach(() => {
     push.mockClear();
+    window.localStorage.clear();
   });
 
   it("navigates to the room when a code is submitted", async () => {
@@ -23,5 +24,20 @@ describe("Home page", () => {
     await user.click(screen.getByRole("button", { name: /join room/i }));
 
     expect(push).toHaveBeenCalledWith("/room/AB123");
+  });
+
+  it("shows hosted rooms saved in local storage", async () => {
+    const user = userEvent.setup();
+    window.localStorage.setItem(
+      "vote-tracker:hosted-rooms",
+      JSON.stringify([
+        { code: "ZXCV12", lastVisitedAt: new Date().toISOString() },
+      ])
+    );
+    render(<Home />);
+
+    expect(screen.getByText("ZXCV12")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /open host view/i }));
+    expect(push).toHaveBeenCalledWith("/host/ZXCV12");
   });
 });

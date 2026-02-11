@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Shell from "@/components/Shell";
+import { addHostedRoom } from "@/lib/hostRooms";
 import type { RoleSummary, Room, TallyEntry } from "@/lib/types";
 
 type RoomSummaryPayload = {
@@ -96,6 +97,11 @@ export default function HostRoom() {
       source.close();
     };
   }, [applySummary, normalized, refresh]);
+
+  useEffect(() => {
+    if (!room || !normalized) return;
+    addHostedRoom(normalized);
+  }, [normalized, room]);
 
   const handleCopy = async () => {
     if (!normalized) return;

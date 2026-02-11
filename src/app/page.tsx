@@ -4,10 +4,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import Shell from "@/components/Shell";
+import { getHostedRooms, removeHostedRoom, type HostedRoom } from "@/lib/hostRooms";
 
 export default function Home() {
   const router = useRouter();
   const [roomCode, setRoomCode] = useState("");
+  const [hostedRooms, setHostedRooms] = useState<HostedRoom[]>(() =>
+    getHostedRooms()
+  );
 
   const handleJoin = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -89,6 +93,61 @@ export default function Home() {
             </Link>
           </section>
         </section>
+
+        {hostedRooms.length ? (
+          <section className="panel flex flex-col gap-4 p-8 reveal reveal-delay-2">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-sm text-muted">Recently hosted rooms</p>
+                <h2 className="text-2xl font-[family:var(--font-display)] text-ink">
+                  Jump back to your dashboards.
+                </h2>
+              </div>
+              <Link
+                href="/host"
+                className="rounded-2xl border border-ink px-4 py-2 text-xs uppercase tracking-[0.3em] text-ink"
+              >
+                Create another
+              </Link>
+            </div>
+            <div className="grid gap-3">
+              {hostedRooms.map((room) => (
+                <div
+                  key={room.code}
+                  className="surface-soft grid gap-3 rounded-2xl border border-border p-4 sm:grid-cols-[1fr_auto_auto]"
+                >
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.3em] text-muted">
+                      Room code
+                    </p>
+                    <p className="text-lg tracking-[0.2em] text-ink">{room.code}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => router.push(`/host/${room.code}`)}
+                    className="rounded-2xl bg-ink px-4 py-2 text-xs uppercase tracking-[0.3em]"
+                    style={{ color: "var(--on-ink)" }}
+                  >
+                    Open host view
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      removeHostedRoom(room.code);
+                      setHostedRooms(getHostedRooms());
+                    }}
+                    className="rounded-2xl border border-ink px-4 py-2 text-xs uppercase tracking-[0.3em] text-ink"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-muted">
+              Rooms stay in this list for 14 days since your last visit.
+            </p>
+          </section>
+        ) : null}
       </main>
     </Shell>
   );

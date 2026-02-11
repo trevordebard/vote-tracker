@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Shell from "@/components/Shell";
+import { addHostedRoom } from "@/lib/hostRooms";
 
 export default function HostLanding() {
   const router = useRouter();
@@ -125,9 +126,12 @@ export default function HostLanding() {
               />
               <button
                 type="button"
-                onClick={() =>
-                  router.push(`/host/${existingRoomCode.trim().toUpperCase()}`)
-                }
+                onClick={() => {
+                  const normalized = existingRoomCode.trim().toUpperCase();
+                  if (!normalized) return;
+                  addHostedRoom(normalized);
+                  router.push(`/host/${normalized}`);
+                }}
                 disabled={!canOpenExisting}
                 className="rounded-2xl border border-ink px-4 py-3 text-xs uppercase tracking-[0.3em] text-ink disabled:opacity-50"
               >
