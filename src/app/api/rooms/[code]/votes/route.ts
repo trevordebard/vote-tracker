@@ -50,12 +50,15 @@ export async function POST(
           (item: unknown): item is { roleName?: unknown; candidateName?: unknown } =>
             Boolean(item) && typeof item === "object"
         )
-        .map((item) => ({
+        .map((item: { roleName?: unknown; candidateName?: unknown }) => ({
           roleName: typeof item.roleName === "string" ? item.roleName.trim() : "",
           candidateName:
             typeof item.candidateName === "string" ? item.candidateName.trim() : "",
         }))
-        .filter((item) => item.roleName && item.candidateName)
+        .filter(
+          (item: { roleName: string; candidateName: string }) =>
+            item.roleName && item.candidateName
+        )
     : [
         {
           roleName:
@@ -65,7 +68,7 @@ export async function POST(
           candidateName:
             typeof body?.candidateName === "string" ? body.candidateName.trim() : "",
         },
-      ].filter((item) => item.candidateName);
+      ].filter((item: { roleName: string; candidateName: string }) => item.candidateName);
 
   if (!votesInput.length) {
     return NextResponse.json(
