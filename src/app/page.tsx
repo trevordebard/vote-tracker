@@ -5,12 +5,16 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import Shell from "@/components/Shell";
 import { getHostedRooms, removeHostedRoom, type HostedRoom } from "@/lib/hostRooms";
+import { getVotedRooms, removeVotedRoom, type VotedRoom } from "@/lib/votedRooms";
 
 export default function Home() {
   const router = useRouter();
   const [roomCode, setRoomCode] = useState("");
   const [hostedRooms, setHostedRooms] = useState<HostedRoom[]>(() =>
     getHostedRooms()
+  );
+  const [votedRooms, setVotedRooms] = useState<VotedRoom[]>(() =>
+    getVotedRooms()
   );
 
   const handleJoin = (event: FormEvent<HTMLFormElement>) => {
@@ -145,6 +149,53 @@ export default function Home() {
             </div>
             <p className="text-xs text-muted">
               Rooms stay in this list for 14 days since your last visit.
+            </p>
+          </section>
+        ) : null}
+
+        {votedRooms.length ? (
+          <section className="panel flex flex-col gap-4 p-8 reveal reveal-delay-2">
+            <div>
+              <p className="text-sm text-muted">Recently voted rooms</p>
+              <h2 className="text-2xl font-[family:var(--font-display)] text-ink">
+                Return to edit your votes.
+              </h2>
+            </div>
+            <div className="grid gap-3">
+              {votedRooms.map((room) => (
+                <div
+                  key={room.code}
+                  className="surface-soft grid gap-3 rounded-2xl border border-border p-4 sm:grid-cols-[1fr_auto_auto]"
+                >
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.3em] text-muted">
+                      Room code
+                    </p>
+                    <p className="text-lg tracking-[0.2em] text-ink">{room.code}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => router.push(`/room/${room.code}`)}
+                    className="rounded-2xl bg-ink px-4 py-2 text-xs uppercase tracking-[0.3em]"
+                    style={{ color: "var(--on-ink)" }}
+                  >
+                    Return to room
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      removeVotedRoom(room.code);
+                      setVotedRooms(getVotedRooms());
+                    }}
+                    className="rounded-2xl border border-ink px-4 py-2 text-xs uppercase tracking-[0.3em] text-ink"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-muted">
+              Rooms stay in this list for 14 days since your last vote.
             </p>
           </section>
         ) : null}
