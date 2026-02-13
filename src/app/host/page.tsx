@@ -43,85 +43,94 @@ export default function HostLanding() {
 
   return (
     <Shell>
-      <main className="flex flex-col items-center">
-        <section className="panel flex w-full max-w-3xl flex-col gap-6 p-8 reveal">
-          <div className="flex flex-col gap-4">
-            <h1 className="text-3xl font-[family:var(--font-display)] text-ink sm:text-4xl">
-              Create a room, then share the voter link.
-            </h1>
-            <p className="text-muted">
-              Define the roles being voted on, optionally add a candidate list,
-              and open one live dashboard for all results.
-            </p>
-          </div>
-          <div className="flex flex-col gap-3 text-xs text-muted">
-            <label className="uppercase tracking-[0.3em]">
-              Roles to vote for
+      <main className="flex flex-col gap-6">
+        <section className="grid items-start gap-6 lg:grid-cols-[1.4fr_0.6fr]">
+          <div className="panel flex flex-col gap-6 p-8 reveal">
+            <div className="flex flex-col gap-2">
+              <p className="text-sm text-muted">New room</p>
+              <h1 className="text-3xl font-[family:var(--font-display)] text-ink sm:text-4xl">
+                Create a room, then share the voter link.
+              </h1>
+              <p className="text-muted">
+                Define the roles being voted on, optionally add a candidate
+                list, and open one live dashboard for all results.
+              </p>
+            </div>
+            <div className="flex flex-col gap-3 text-xs text-muted">
+              <label className="uppercase tracking-[0.3em]">
+                Roles to vote for
+              </label>
+              <textarea
+                value={rolesText}
+                onChange={(event) => setRolesText(event.target.value)}
+                placeholder="Secretary, Facilitator"
+                rows={3}
+                className="surface-soft rounded-2xl border border-border px-4 py-3 text-sm text-ink outline-none transition focus:border-ink"
+              />
+              <p>Separate roles with commas or new lines.</p>
+            </div>
+            <label className="surface-soft flex items-center gap-3 rounded-2xl border border-border px-4 py-3 text-sm text-ink">
+              <input
+                type="checkbox"
+                checked={allowWriteIns}
+                onChange={(event) => setAllowWriteIns(event.target.checked)}
+              />
+              Allow write-in candidates
             </label>
-            <textarea
-              value={rolesText}
-              onChange={(event) => setRolesText(event.target.value)}
-              placeholder="Secretary, Facilitator"
-              rows={3}
-              className="surface-soft rounded-2xl border border-border px-4 py-3 text-sm text-ink outline-none transition focus:border-ink"
-            />
-            <p>Separate roles with commas or new lines.</p>
-          </div>
-          <label className="surface-soft flex items-center gap-3 rounded-2xl border border-border px-4 py-3 text-sm text-ink">
-            <input
-              type="checkbox"
-              checked={allowWriteIns}
-              onChange={(event) => setAllowWriteIns(event.target.checked)}
-            />
-            Allow write-in candidates
-          </label>
-          <label className="surface-soft flex items-center gap-3 rounded-2xl border border-border px-4 py-3 text-sm text-ink">
-            <input
-              type="checkbox"
-              checked={allowAnonymous}
-              onChange={(event) => setAllowAnonymous(event.target.checked)}
-            />
-            Allow anonymous voting
-          </label>
-          <div className="flex flex-col gap-3 text-xs text-muted">
-            <label className="uppercase tracking-[0.3em]">
-              Candidate list (optional)
+            <label className="surface-soft flex items-center gap-3 rounded-2xl border border-border px-4 py-3 text-sm text-ink">
+              <input
+                type="checkbox"
+                checked={allowAnonymous}
+                onChange={(event) => setAllowAnonymous(event.target.checked)}
+              />
+              Allow anonymous voting
             </label>
-            <textarea
-              value={candidatesText}
-              onChange={(event) => setCandidatesText(event.target.value)}
-              placeholder="Add candidate names"
-              rows={4}
-              className="surface-soft rounded-2xl border border-border px-4 py-3 text-sm text-ink outline-none transition focus:border-ink"
-            />
-            <p>Example: Alex Kim, Jordan Lee, Sam Patel</p>
-            <p>Separate names with commas or new lines.</p>
+            <div className="flex flex-col gap-3 text-xs text-muted">
+              <label className="uppercase tracking-[0.3em]">
+                Candidate list (optional)
+              </label>
+              <textarea
+                value={candidatesText}
+                onChange={(event) => setCandidatesText(event.target.value)}
+                placeholder="Add candidate names"
+                rows={4}
+                className="surface-soft rounded-2xl border border-border px-4 py-3 text-sm text-ink outline-none transition focus:border-ink"
+              />
+              <p>Example: Alex Kim, Jordan Lee, Sam Patel</p>
+              <p>Separate names with commas or new lines.</p>
+            </div>
+            {!allowWriteIns && candidates.length === 0 ? (
+              <p className="text-xs text-muted">
+                Add at least one candidate when write-ins are disabled.
+              </p>
+            ) : roles.length === 0 ? (
+              <p className="text-xs text-muted">
+                Add at least one role before creating the room.
+              </p>
+            ) : null}
+            <button
+              type="button"
+              onClick={handleCreate}
+              disabled={isCreating || !canCreate || roles.length === 0}
+              className="cta-primary rounded-2xl px-4 py-3 text-sm uppercase tracking-[0.3em] transition hover:-translate-y-0.5 hover:opacity-90 disabled:opacity-60"
+            >
+              {isCreating ? "Creating..." : "Create room"}
+            </button>
+            <p className="text-xs text-muted">
+              You&apos;ll get one shareable voter link and live results per
+              role.
+            </p>
           </div>
-          {!allowWriteIns && candidates.length === 0 ? (
-            <p className="text-xs text-muted">
-              Add at least one candidate when write-ins are disabled.
+
+          <div className="panel flex flex-col gap-4 p-8 reveal reveal-delay-1">
+            <p className="text-sm text-muted">Existing room</p>
+            <h2 className="text-2xl font-[family:var(--font-display)] text-ink">
+              Rejoin a dashboard.
+            </h2>
+            <p className="text-sm text-muted">
+              Already have a room code? Jump straight back to your host view.
             </p>
-          ) : roles.length === 0 ? (
-            <p className="text-xs text-muted">
-              Add at least one role before creating the room.
-            </p>
-          ) : null}
-          <button
-            type="button"
-            onClick={handleCreate}
-            disabled={isCreating || !canCreate || roles.length === 0}
-            className="cta-primary rounded-2xl px-4 py-3 text-sm uppercase tracking-[0.3em] transition hover:-translate-y-0.5 hover:opacity-90 disabled:opacity-60"
-          >
-            {isCreating ? "Creating..." : "Create room"}
-          </button>
-          <p className="text-xs text-muted">
-            You&apos;ll get one shareable voter link and live results per role.
-          </p>
-          <div className="surface-soft flex flex-col gap-3 rounded-2xl border border-border p-4">
-            <p className="text-xs uppercase tracking-[0.3em] text-muted">
-              Return to an existing room
-            </p>
-            <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+            <div className="flex flex-col gap-3">
               <input
                 value={existingRoomCode}
                 onChange={(event) => {
@@ -131,7 +140,7 @@ export default function HostLanding() {
                   setExistingRoomCode(sanitized);
                 }}
                 placeholder="ABC123"
-                className="surface rounded-2xl border border-border px-4 py-3 text-sm uppercase tracking-[0.2em] text-ink outline-none transition focus:border-ink"
+                className="surface-soft rounded-2xl border border-border px-4 py-3 text-sm uppercase tracking-[0.2em] text-ink outline-none transition focus:border-ink"
               />
               <button
                 type="button"
@@ -142,7 +151,7 @@ export default function HostLanding() {
                   router.push(`/host/${normalized}`);
                 }}
                 disabled={!canOpenExisting}
-                className="rounded-2xl border border-ink px-4 py-3 text-xs uppercase tracking-[0.3em] text-ink disabled:opacity-50"
+                className="cta-primary rounded-2xl px-4 py-3 text-xs uppercase tracking-[0.3em] transition hover:-translate-y-0.5 hover:opacity-90 disabled:opacity-60"
               >
                 Open dashboard
               </button>

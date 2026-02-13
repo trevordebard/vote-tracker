@@ -29,6 +29,7 @@ export default function HostRoom() {
   const [mergeSelection, setMergeSelection] = useState<string[]>([]);
   const [mergeTarget, setMergeTarget] = useState("");
   const [isMerging, setIsMerging] = useState(false);
+  const [mergeDone, setMergeDone] = useState(false);
   const [showEndModal, setShowEndModal] = useState(false);
   const [streamStatus, setStreamStatus] = useState<"connected" | "reconnecting">(
     "connected"
@@ -144,6 +145,8 @@ export default function HostRoom() {
     setIsMerging(false);
     setMergeSelection([]);
     setMergeTarget("");
+    setMergeDone(true);
+    setTimeout(() => setMergeDone(false), 2000);
     void refresh();
   };
 
@@ -223,7 +226,7 @@ export default function HostRoom() {
               <button
                 type="button"
                 onClick={() => {
-                  window.location.href = `/room/${normalized}`;
+                  window.location.href = `/room/${normalized}?from=host`;
                 }}
                 className="rounded-2xl bg-ink px-4 py-2 text-xs uppercase tracking-[0.3em]"
                 style={{ color: "var(--on-ink)" }}
@@ -361,6 +364,11 @@ export default function HostRoom() {
               >
                 {isMerging ? "Merging..." : "Merge selected"}
               </button>
+              {mergeDone && (
+                <p className="text-xs uppercase tracking-[0.3em] text-muted">
+                  Merged
+                </p>
+              )}
               {mergeSelection.length ? (
                 <button
                   type="button"

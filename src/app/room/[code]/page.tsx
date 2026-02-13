@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import Shell from "@/components/Shell";
 import type { Room } from "@/lib/types";
 
 export default function VoterRoom() {
   const params = useParams();
+  const searchParams = useSearchParams();
+  const fromHost = searchParams.get("from") === "host";
   const code = useMemo(
     () => (Array.isArray(params.code) ? params.code[0] : params.code),
     [params.code]
@@ -19,6 +21,7 @@ export default function VoterRoom() {
   const [roleOption, setRoleOption] = useState<Record<string, string>>({});
   const [roleWriteIns, setRoleWriteIns] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   const refresh = useCallback(async () => {
@@ -68,11 +71,13 @@ export default function VoterRoom() {
 
     if (votes.length !== roles.length) return;
 
+    setIsSubmitting(true);
     const response = await fetch(`/api/rooms/${normalized}/votes`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ voterName, votes }),
     });
+    setIsSubmitting(false);
     if (!response.ok) return;
 
     setSubmitted(true);
@@ -173,6 +178,11 @@ export default function VoterRoom() {
                   disabled={!canVote}
                   className="surface-soft rounded-2xl border border-border px-4 py-3 text-ink outline-none transition focus:border-ink disabled:opacity-60"
                 />
+                {(name.trim() || !allowAnonymous) && (
+                  <p className="text-xs text-muted">
+                    Your name is visible to the host but not to other voters.
+                  </p>
+                )}
               </div>
 
               {roles.map((role) => (
@@ -299,10 +309,10 @@ export default function VoterRoom() {
 
               <button
                 type="submit"
-                disabled={!canSubmit}
+                disabled={!canSubmit || isSubmitting}
                 className="cta-primary rounded-2xl px-4 py-3 text-sm uppercase tracking-[0.3em] transition hover:-translate-y-0.5 hover:opacity-90 disabled:opacity-60"
               >
-                Submit votes
+                {isSubmitting ? "Submitting..." : "Submit votes"}
               </button>
               {isClosed && (
                 <p className="text-sm text-muted">
@@ -312,12 +322,21 @@ export default function VoterRoom() {
             </form>
           )}
 
-          <Link
-            href="/"
-            className="w-fit rounded-2xl border border-ink px-4 py-3 text-xs uppercase tracking-[0.3em] text-ink"
-          >
-            Back to home
-          </Link>
+          {fromHost ? (
+            <Link
+              href={`/host/${normalized}`}
+              className="w-fit rounded-2xl border border-ink px-4 py-3 text-xs uppercase tracking-[0.3em] text-ink"
+            >
+              Back to dashboard
+            </Link>
+          ) : (
+            <Link
+              href="/"
+              className="w-fit rounded-2xl border border-ink px-4 py-3 text-xs uppercase tracking-[0.3em] text-ink"
+            >
+              Back to home
+            </Link>
+          )}
         </section>
       </main>
     </Shell>
