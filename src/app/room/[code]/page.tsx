@@ -2,9 +2,16 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import Shell from "@/components/Shell";
 import type { Room } from "@/lib/types";
+import { addVotedRoom, getVotedRoom, removeVotedRoom, type VotedRoom } from "@/lib/votedRooms";
+import { getVoterName, setVoterName as persistVoterName } from "@/lib/voterName";
+
+type VoteResponse = {
+  voterName: string;
+  votes: { id: string; roleName: string; candidateName: string }[];
+};
 
 export default function VoterRoom() {
   const params = useParams();
@@ -20,6 +27,10 @@ export default function VoterRoom() {
   const [roleWriteIns, setRoleWriteIns] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [existingVoteIds, setExistingVoteIds] = useState<string[]>([]);
+  const [savedVotes, setSavedVotes] = useState<VotedRoom["votes"]>([]);
+  const [savedVoterName, setSavedVoterName] = useState("");
+  const restoredRef = useRef(false);
 
   const refresh = useCallback(async () => {
     setIsLoading(true);
@@ -54,7 +65,60 @@ export default function VoterRoom() {
     };
   }, [normalized, refresh]);
 
+  // Restore voter name and previous votes from localStorage
+  useEffect(() => {
+    if (!normalized || restoredRef.current) return;
+    restoredRef.current = true;
+
+    const persistedName = getVoterName();
+    if (persistedName) {
+      setName(persistedName);
+    }
+
+    const voted = getVotedRoom(normalized);
+    if (voted) {
+      setSubmitted(true);
+      setExistingVoteIds(voted.voteIds);
+      setSavedVotes(voted.votes);
+      setSavedVoterName(voted.voterName);
+      if (voted.voterName) {
+        setName(voted.voterName);
+      }
+    }
+  }, [normalized]);
+
   const roles = room?.roles?.length ? room.roles : ["General"];
+  const candidates = room?.candidates ?? [];
+  const allowWriteIns = room?.allowWriteIns ?? true;
+  const hasCandidateOptions = candidates.length > 0;
+
+  const prepopulateForm = useCallback(() => {
+    savedVotes.forEach((vote) => {
+      const isKnownCandidate = candidates.some(
+        (c) => c.trim().toUpperCase() === vote.candidateName.trim().toUpperCase()
+      );
+      if (hasCandidateOptions && isKnownCandidate) {
+        const matchedCandidate = candidates.find(
+          (c) => c.trim().toUpperCase() === vote.candidateName.trim().toUpperCase()
+        )!;
+        setRoleOption((current) => ({ ...current, [vote.roleName]: matchedCandidate }));
+        setRoleCandidates((current) => ({ ...current, [vote.roleName]: matchedCandidate }));
+        setRoleWriteIns((current) => ({ ...current, [vote.roleName]: "" }));
+      } else if (hasCandidateOptions) {
+        setRoleOption((current) => ({ ...current, [vote.roleName]: "other" }));
+        setRoleWriteIns((current) => ({ ...current, [vote.roleName]: vote.candidateName }));
+        setRoleCandidates((current) => ({ ...current, [vote.roleName]: vote.candidateName }));
+      } else {
+        setRoleCandidates((current) => ({ ...current, [vote.roleName]: vote.candidateName }));
+      }
+    });
+    setName(savedVoterName || getVoterName());
+  }, [savedVotes, savedVoterName, candidates, hasCandidateOptions]);
+
+  const handleEdit = () => {
+    prepopulateForm();
+    setSubmitted(false);
+  };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -68,25 +132,58 @@ export default function VoterRoom() {
 
     if (votes.length !== roles.length) return;
 
-    const response = await fetch(`/api/rooms/${normalized}/votes`, {
-      method: "POST",
+    const isUpdate = existingVoteIds.length > 0;
+    const method = isUpdate ? "PUT" : "POST";
+    const payload: Record<string, unknown> = { voterName, votes };
+    if (isUpdate) {
+      payload.voteIds = existingVoteIds;
+    }
+
+    let response = await fetch(`/api/rooms/${normalized}/votes`, {
+      method,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ voterName, votes }),
+      body: JSON.stringify(payload),
     });
+
+    // If PUT fails with 404 (stale IDs), fall back to fresh POST
+    if (isUpdate && response.status === 404) {
+      removeVotedRoom(normalized);
+      response = await fetch(`/api/rooms/${normalized}/votes`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ voterName, votes }),
+      });
+    }
+
     if (!response.ok) return;
 
+    const data = (await response.json()) as VoteResponse;
+
+    // Persist to localStorage
+    if (voterName) {
+      persistVoterName(voterName);
+    }
+    const newVoteIds = data.votes.map((v) => v.id);
+    const newVotes = data.votes.map((v) => ({
+      roleName: v.roleName,
+      candidateName: v.candidateName,
+    }));
+    addVotedRoom({
+      code: normalized,
+      voterName: data.voterName,
+      voteIds: newVoteIds,
+      votes: newVotes,
+      lastVotedAt: new Date().toISOString(),
+    });
+
+    setExistingVoteIds(newVoteIds);
+    setSavedVotes(newVotes);
+    setSavedVoterName(data.voterName);
     setSubmitted(true);
-    setName("");
-    setRoleCandidates({});
-    setRoleOption({});
-    setRoleWriteIns({});
   };
 
   const isClosed = Boolean(room?.closedAt);
   const canVote = !isClosed && !submitted;
-  const candidates = room?.candidates ?? [];
-  const allowWriteIns = room?.allowWriteIns ?? true;
-  const hasCandidateOptions = candidates.length > 0;
   const canSubmit =
     canVote &&
     (hasCandidateOptions || allowWriteIns) &&
@@ -146,7 +243,7 @@ export default function VoterRoom() {
             Your vote is sent to the host only. Other voters never see results.
           </p>
 
-          {submitted && !isClosed ? (
+          {submitted ? (
             <section className="surface-soft flex flex-col gap-4 rounded-3xl border border-border p-6 text-ink">
               <p className="text-sm uppercase tracking-[0.3em] text-muted">
                 Vote submitted
@@ -154,9 +251,38 @@ export default function VoterRoom() {
               <h2 className="text-2xl font-[family:var(--font-display)]">
                 Votes submitted. You&apos;re all set.
               </h2>
-              <p className="text-sm text-muted">
-                You can watch the live tally board if the host shares it.
-              </p>
+              {savedVotes.length > 0 && (
+                <div className="flex flex-col gap-2">
+                  {savedVoterName && savedVoterName !== "Anonymous" && (
+                    <p className="text-sm text-muted">
+                      Voted as <span className="font-medium text-ink">{savedVoterName}</span>
+                    </p>
+                  )}
+                  {savedVotes.map((vote) => (
+                    <div
+                      key={vote.roleName}
+                      className="flex items-center gap-2 text-sm"
+                    >
+                      <span className="text-muted">{vote.roleName}:</span>
+                      <span className="font-medium">{vote.candidateName}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {!isClosed && (
+                <button
+                  type="button"
+                  onClick={handleEdit}
+                  className="w-fit rounded-2xl border border-ink px-4 py-3 text-xs uppercase tracking-[0.3em] text-ink transition hover:-translate-y-0.5"
+                >
+                  Edit vote
+                </button>
+              )}
+              {isClosed && (
+                <p className="text-sm text-muted">
+                  Voting is closed for this room.
+                </p>
+              )}
             </section>
           ) : (
             <form onSubmit={handleSubmit} className="flex flex-col gap-5">
@@ -300,7 +426,7 @@ export default function VoterRoom() {
                 disabled={!canSubmit}
                 className="cta-primary rounded-2xl px-4 py-3 text-sm uppercase tracking-[0.3em] transition hover:-translate-y-0.5 hover:opacity-90 disabled:opacity-60"
               >
-                Submit votes
+                {existingVoteIds.length > 0 ? "Update votes" : "Submit votes"}
               </button>
               {isClosed && (
                 <p className="text-sm text-muted">
