@@ -24,7 +24,8 @@ const initDb = () => {
       closed_at TEXT,
       candidates_json TEXT,
       roles_json TEXT,
-      allow_write_ins INTEGER NOT NULL DEFAULT 1
+      allow_write_ins INTEGER NOT NULL DEFAULT 1,
+      allow_anonymous INTEGER NOT NULL DEFAULT 1
     );
 
     CREATE TABLE IF NOT EXISTS votes (
@@ -53,6 +54,14 @@ const initDb = () => {
   const hasRoles = roomColumns.some((column) => column.name === "roles_json");
   if (!hasRoles) {
     db.exec("ALTER TABLE rooms ADD COLUMN roles_json TEXT");
+  }
+  const hasAllowAnonymous = roomColumns.some(
+    (column) => column.name === "allow_anonymous"
+  );
+  if (!hasAllowAnonymous) {
+    db.exec(
+      "ALTER TABLE rooms ADD COLUMN allow_anonymous INTEGER NOT NULL DEFAULT 1"
+    );
   }
   const voteColumns = db
     .prepare("PRAGMA table_info(votes)")

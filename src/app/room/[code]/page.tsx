@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import Shell from "@/components/Shell";
 import type { Room } from "@/lib/types";
@@ -15,6 +15,8 @@ type VoteResponse = {
 
 export default function VoterRoom() {
   const params = useParams();
+  const searchParams = useSearchParams();
+  const fromHost = searchParams.get("from") === "host";
   const code = useMemo(
     () => (Array.isArray(params.code) ? params.code[0] : params.code),
     [params.code]
@@ -26,6 +28,7 @@ export default function VoterRoom() {
   const [roleOption, setRoleOption] = useState<Record<string, string>>({});
   const [roleWriteIns, setRoleWriteIns] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [existingVoteIds, setExistingVoteIds] = useState<string[]>([]);
   const [savedVotes, setSavedVotes] = useState<VotedRoom["votes"]>([]);
@@ -88,23 +91,29 @@ export default function VoterRoom() {
   }, [normalized]);
 
   const roles = room?.roles?.length ? room.roles : ["General"];
-  const candidates = room?.candidates ?? [];
   const allowWriteIns = room?.allowWriteIns ?? true;
-  const hasCandidateOptions = candidates.length > 0;
+  const allowAnonymous = room?.allowAnonymous ?? true;
+
+  const getCandidatesForRole = (role: string): string[] => {
+    if (room?.roleCandidates?.[role]) return room.roleCandidates[role];
+    return room?.candidates ?? [];
+  };
 
   const prepopulateForm = useCallback(() => {
     savedVotes.forEach((vote) => {
-      const isKnownCandidate = candidates.some(
+      const candidatesForRole = getCandidatesForRole(vote.roleName);
+      const hasCands = candidatesForRole.length > 0;
+      const isKnownCandidate = candidatesForRole.some(
         (c) => c.trim().toUpperCase() === vote.candidateName.trim().toUpperCase()
       );
-      if (hasCandidateOptions && isKnownCandidate) {
-        const matchedCandidate = candidates.find(
+      if (hasCands && isKnownCandidate) {
+        const matchedCandidate = candidatesForRole.find(
           (c) => c.trim().toUpperCase() === vote.candidateName.trim().toUpperCase()
         )!;
         setRoleOption((current) => ({ ...current, [vote.roleName]: matchedCandidate }));
         setRoleCandidates((current) => ({ ...current, [vote.roleName]: matchedCandidate }));
         setRoleWriteIns((current) => ({ ...current, [vote.roleName]: "" }));
-      } else if (hasCandidateOptions) {
+      } else if (hasCands) {
         setRoleOption((current) => ({ ...current, [vote.roleName]: "other" }));
         setRoleWriteIns((current) => ({ ...current, [vote.roleName]: vote.candidateName }));
         setRoleCandidates((current) => ({ ...current, [vote.roleName]: vote.candidateName }));
@@ -113,7 +122,8 @@ export default function VoterRoom() {
       }
     });
     setName(savedVoterName || getVoterName());
-  }, [savedVotes, savedVoterName, candidates, hasCandidateOptions]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [savedVotes, savedVoterName, room]);
 
   const handleEdit = () => {
     prepopulateForm();
@@ -132,6 +142,7 @@ export default function VoterRoom() {
 
     if (votes.length !== roles.length) return;
 
+    setIsSubmitting(true);
     const isUpdate = existingVoteIds.length > 0;
     const method = isUpdate ? "PUT" : "POST";
     const payload: Record<string, unknown> = { voterName, votes };
@@ -155,6 +166,7 @@ export default function VoterRoom() {
       });
     }
 
+    setIsSubmitting(false);
     if (!response.ok) return;
 
     const data = (await response.json()) as VoteResponse;
@@ -186,8 +198,11 @@ export default function VoterRoom() {
   const canVote = !isClosed && !submitted;
   const canSubmit =
     canVote &&
-    (hasCandidateOptions || allowWriteIns) &&
-    roles.every((role) => Boolean((roleCandidates[role] ?? "").trim()));
+    roles.every((role) => {
+      const cands = getCandidatesForRole(role);
+      return (cands.length > 0 || allowWriteIns) && Boolean((roleCandidates[role] ?? "").trim());
+    }) &&
+    (allowAnonymous || name.trim().length > 0);
 
   if (!normalized) return null;
 
@@ -288,7 +303,7 @@ export default function VoterRoom() {
             <form onSubmit={handleSubmit} className="flex flex-col gap-5">
               <div className="flex flex-col gap-2">
                 <label className="text-xs uppercase tracking-[0.3em] text-muted">
-                  Your name (optional)
+                  Your name {allowAnonymous ? "(optional)" : "(required)"}
                 </label>
                 <input
                   value={name}
@@ -297,136 +312,150 @@ export default function VoterRoom() {
                   disabled={!canVote}
                   className="surface-soft rounded-2xl border border-border px-4 py-3 text-ink outline-none transition focus:border-ink disabled:opacity-60"
                 />
+                {(name.trim() || !allowAnonymous) && (
+                  <p className="text-xs text-muted">
+                    Your name is visible to the host but not to other voters.
+                  </p>
+                )}
               </div>
 
-              {roles.map((role) => (
-                <section
-                  key={role}
-                  className="surface-soft flex flex-col gap-3 rounded-2xl border border-border p-4"
-                >
-                  <h2 className="text-lg font-[family:var(--font-display)] text-ink">
-                    {role}
-                  </h2>
-                  {hasCandidateOptions ? (
-                    <>
-                      <label className="text-xs uppercase tracking-[0.3em] text-muted">
-                        Choose a candidate
-                      </label>
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        {candidates.map((candidateName) => (
-                          <label
-                            key={`${role}-${candidateName}`}
-                            className="surface flex items-center gap-3 rounded-2xl border border-border px-4 py-3 text-sm text-ink"
-                          >
-                            <input
-                              type="radio"
-                              name={`candidate-${role}`}
-                              value={candidateName}
-                              checked={roleOption[role] === candidateName}
-                              onChange={() => {
-                                setRoleOption((current) => ({
-                                  ...current,
-                                  [role]: candidateName,
-                                }));
-                                setRoleCandidates((current) => ({
-                                  ...current,
-                                  [role]: candidateName,
-                                }));
-                                setRoleWriteIns((current) => ({
-                                  ...current,
-                                  [role]: "",
-                                }));
-                              }}
-                              disabled={!canVote}
-                            />
-                            <span>{candidateName}</span>
-                          </label>
-                        ))}
-                      </div>
-                      {allowWriteIns ? (
-                        <label className="surface flex flex-col gap-2 rounded-2xl border border-border px-4 py-3 text-sm text-ink">
-                          <div className="flex items-center gap-3">
-                            <input
-                              type="radio"
-                              name={`candidate-${role}`}
-                              value="other"
-                              checked={roleOption[role] === "other"}
-                              onChange={() => {
-                                setRoleOption((current) => ({
-                                  ...current,
-                                  [role]: "other",
-                                }));
-                                setRoleCandidates((current) => ({
-                                  ...current,
-                                  [role]: roleWriteIns[role] ?? "",
-                                }));
-                              }}
-                              disabled={!canVote}
-                            />
-                            <span>Write in another name</span>
-                          </div>
-                          {roleOption[role] === "other" ? (
-                            <input
-                              value={roleWriteIns[role] ?? ""}
-                              onChange={(event) => {
-                                const value = event.target.value;
-                                setRoleWriteIns((current) => ({
-                                  ...current,
-                                  [role]: value,
-                                }));
-                                setRoleCandidates((current) => ({
-                                  ...current,
-                                  [role]: value,
-                                }));
-                              }}
-                              placeholder={`Candidate name for ${role}`}
-                              disabled={!canVote}
-                              className="surface rounded-2xl border border-border px-3 py-2 text-sm text-ink outline-none"
-                            />
-                          ) : null}
+              {roles.map((role) => {
+                const candidatesForRole = getCandidatesForRole(role);
+                const hasCandidateOptions = candidatesForRole.length > 0;
+
+                return (
+                  <section
+                    key={role}
+                    className="surface-soft flex flex-col gap-3 rounded-2xl border border-border p-4"
+                  >
+                    <h2 className="text-lg font-[family:var(--font-display)] text-ink">
+                      {role}
+                    </h2>
+                    {hasCandidateOptions ? (
+                      <>
+                        <label className="text-xs uppercase tracking-[0.3em] text-muted">
+                          Choose a candidate
                         </label>
-                      ) : (
-                        <p className="text-xs text-muted">
-                          Write-in candidates are disabled for this room.
-                        </p>
-                      )}
-                    </>
-                  ) : allowWriteIns ? (
-                    <div className="flex flex-col gap-2">
-                      <label className="text-xs uppercase tracking-[0.3em] text-muted">
-                        Candidate name
-                      </label>
-                      <input
-                        value={roleCandidates[role] ?? ""}
-                        onChange={(event) =>
-                          setRoleCandidates((current) => ({
-                            ...current,
-                            [role]: event.target.value,
-                          }))
-                        }
-                        placeholder={
-                          roles.length === 1
-                            ? "Candidate name"
-                            : `Candidate name for ${role}`
-                        }
-                        disabled={!canVote}
-                        className="surface rounded-2xl border border-border px-4 py-3 text-ink outline-none transition focus:border-ink disabled:opacity-60"
-                      />
-                    </div>
-                  ) : (
-                    <div className="surface rounded-2xl border border-border px-4 py-3 text-sm text-muted">
-                      No candidates are available, and write-ins are disabled.
-                    </div>
-                  )}
-                </section>
-              ))}
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          {candidatesForRole.map((candidateName) => (
+                            <label
+                              key={`${role}-${candidateName}`}
+                              className="surface flex items-center gap-3 rounded-2xl border border-border px-4 py-3 text-sm text-ink"
+                            >
+                              <input
+                                type="radio"
+                                name={`candidate-${role}`}
+                                value={candidateName}
+                                checked={roleOption[role] === candidateName}
+                                onChange={() => {
+                                  setRoleOption((current) => ({
+                                    ...current,
+                                    [role]: candidateName,
+                                  }));
+                                  setRoleCandidates((current) => ({
+                                    ...current,
+                                    [role]: candidateName,
+                                  }));
+                                  setRoleWriteIns((current) => ({
+                                    ...current,
+                                    [role]: "",
+                                  }));
+                                }}
+                                disabled={!canVote}
+                              />
+                              <span>{candidateName}</span>
+                            </label>
+                          ))}
+                        </div>
+                        {allowWriteIns ? (
+                          <label className="surface flex flex-col gap-2 rounded-2xl border border-border px-4 py-3 text-sm text-ink">
+                            <div className="flex items-center gap-3">
+                              <input
+                                type="radio"
+                                name={`candidate-${role}`}
+                                value="other"
+                                checked={roleOption[role] === "other"}
+                                onChange={() => {
+                                  setRoleOption((current) => ({
+                                    ...current,
+                                    [role]: "other",
+                                  }));
+                                  setRoleCandidates((current) => ({
+                                    ...current,
+                                    [role]: roleWriteIns[role] ?? "",
+                                  }));
+                                }}
+                                disabled={!canVote}
+                              />
+                              <span>Write in another name</span>
+                            </div>
+                            {roleOption[role] === "other" ? (
+                              <input
+                                value={roleWriteIns[role] ?? ""}
+                                onChange={(event) => {
+                                  const value = event.target.value;
+                                  setRoleWriteIns((current) => ({
+                                    ...current,
+                                    [role]: value,
+                                  }));
+                                  setRoleCandidates((current) => ({
+                                    ...current,
+                                    [role]: value,
+                                  }));
+                                }}
+                                placeholder={`Candidate name for ${role}`}
+                                disabled={!canVote}
+                                className="surface rounded-2xl border border-border px-3 py-2 text-sm text-ink outline-none"
+                              />
+                            ) : null}
+                          </label>
+                        ) : (
+                          <p className="text-xs text-muted">
+                            Write-in candidates are disabled for this room.
+                          </p>
+                        )}
+                      </>
+                    ) : allowWriteIns ? (
+                      <div className="flex flex-col gap-2">
+                        <label className="text-xs uppercase tracking-[0.3em] text-muted">
+                          Candidate name
+                        </label>
+                        <input
+                          value={roleCandidates[role] ?? ""}
+                          onChange={(event) =>
+                            setRoleCandidates((current) => ({
+                              ...current,
+                              [role]: event.target.value,
+                            }))
+                          }
+                          placeholder={
+                            roles.length === 1
+                              ? "Candidate name"
+                              : `Candidate name for ${role}`
+                          }
+                          disabled={!canVote}
+                          className="surface rounded-2xl border border-border px-4 py-3 text-ink outline-none transition focus:border-ink disabled:opacity-60"
+                        />
+                      </div>
+                    ) : (
+                      <div className="surface rounded-2xl border border-border px-4 py-3 text-sm text-muted">
+                        No candidates are available, and write-ins are disabled.
+                      </div>
+                    )}
+                  </section>
+                );
+              })}
 
               <button
                 type="submit"
-                disabled={!canSubmit}
+                disabled={!canSubmit || isSubmitting}
                 className="cta-primary rounded-2xl px-4 py-3 text-sm uppercase tracking-[0.3em] transition hover:-translate-y-0.5 hover:opacity-90 disabled:opacity-60"
               >
-                {existingVoteIds.length > 0 ? "Update votes" : "Submit votes"}
+                {isSubmitting
+                  ? "Submitting..."
+                  : existingVoteIds.length > 0
+                    ? "Update votes"
+                    : "Submit votes"}
               </button>
               {isClosed && (
                 <p className="text-sm text-muted">
@@ -436,12 +465,21 @@ export default function VoterRoom() {
             </form>
           )}
 
-          <Link
-            href="/"
-            className="w-fit rounded-2xl border border-ink px-4 py-3 text-xs uppercase tracking-[0.3em] text-ink"
-          >
-            Back to home
-          </Link>
+          {fromHost ? (
+            <Link
+              href={`/host/${normalized}`}
+              className="w-fit rounded-2xl border border-ink px-4 py-3 text-xs uppercase tracking-[0.3em] text-ink"
+            >
+              Back to dashboard
+            </Link>
+          ) : (
+            <Link
+              href="/"
+              className="w-fit rounded-2xl border border-ink px-4 py-3 text-xs uppercase tracking-[0.3em] text-ink"
+            >
+              Back to home
+            </Link>
+          )}
         </section>
       </main>
     </Shell>

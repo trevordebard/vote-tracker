@@ -99,6 +99,16 @@
   box-sizing: border-box;
 }
 
+@layer base {
+  button {
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+  }
+}
+
 body {
   min-height: 100vh;
   background: var(--page-background);
