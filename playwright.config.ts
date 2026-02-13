@@ -10,8 +10,16 @@ function resolvePlaywrightPort(startPort = DEFAULT_PORT): number {
     const max = start + 99;
     const tryPort = (port) => {
       if (port > max) {
-        process.stderr.write("No open port found in range " + start + "-" + max);
-        process.exit(1);
+        const fallback = net.createServer();
+        fallback.unref();
+        fallback.listen(0, "127.0.0.1", () => {
+          const address = fallback.address();
+          const resolved = address && typeof address === "object" ? address.port : 0;
+          fallback.close(() => {
+            process.stdout.write(String(resolved));
+          });
+        });
+        return;
       }
       const server = net.createServer();
       server.unref();
@@ -35,8 +43,12 @@ function resolvePlaywrightPort(startPort = DEFAULT_PORT): number {
   return resolved;
 }
 
-const port = Number(process.env.PLAYWRIGHT_PORT) || resolvePlaywrightPort();
-const baseURL = `http://localhost:${port}`;
+const isCI = Boolean(process.env.CI);
+const host = "127.0.0.1";
+const port = isCI
+  ? Number(process.env.PLAYWRIGHT_PORT) || DEFAULT_PORT
+  : Number(process.env.PLAYWRIGHT_PORT) || resolvePlaywrightPort();
+const baseURL = `http://${host}:${port}`;
 
 export default defineConfig({
   testDir: "./e2e",
@@ -46,9 +58,9 @@ export default defineConfig({
     trace: "on-first-retry",
   },
   webServer: {
-    command: `npm run build && npm run start -- --port ${port}`,
+    command: `npm run build && npm run start -- --hostname ${host} --port ${port}`,
     url: baseURL,
-    reuseExistingServer: true,
+    reuseExistingServer: !isCI,
     timeout: 120_000,
   },
 });
