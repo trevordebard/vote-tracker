@@ -1,8 +1,11 @@
+export type RoleCandidatesMap = Record<string, string[]>;
+
 export type Room = {
   code: string;
   createdAt: string;
   closedAt?: string | null;
   candidates?: string[] | null;
+  roleCandidates?: RoleCandidatesMap | null;
   allowWriteIns?: boolean | null;
   allowAnonymous?: boolean | null;
   roles?: string[] | null;

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { voteEvents } from "@/lib/events";
+import { parseRoleCandidates } from "@/lib/candidates";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -89,18 +90,17 @@ export async function POST(
   }
 
   const allowWriteIns = room.allow_write_ins !== 0;
-  const candidates = room.candidates_json
-    ? (JSON.parse(room.candidates_json) as string[])
-    : [];
-  if (!allowWriteIns) {
+  const roleCandidates = parseRoleCandidates(room.candidates_json, knownRoles);
+  if (!allowWriteIns && roleCandidates) {
     for (const vote of votesInput) {
+      const roleCands = roleCandidates[vote.roleName] ?? [];
       const normalizedCandidate = vote.candidateName.trim().toUpperCase();
-      const isValid = candidates.some(
+      const isValid = roleCands.some(
         (candidate) => candidate.trim().toUpperCase() === normalizedCandidate
       );
       if (!isValid) {
         return NextResponse.json(
-          { error: "Write-in candidates are not allowed for this room" },
+          { error: `Write-in candidates are not allowed for role "${vote.roleName}"` },
           { status: 400 }
         );
       }

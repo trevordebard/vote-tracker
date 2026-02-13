@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
+import { parseRoleCandidates } from "@/lib/candidates";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -30,12 +31,16 @@ export async function GET(
     return NextResponse.json({ error: "Room not found" }, { status: 404 });
   }
 
+  const roles = room.roles_json ? JSON.parse(room.roles_json) : ["General"];
+  const roleCandidates = parseRoleCandidates(room.candidates_json, roles);
+
   return NextResponse.json({
     code: room.code,
     createdAt: room.created_at,
     closedAt: room.closed_at,
-    candidates: room.candidates_json ? JSON.parse(room.candidates_json) : null,
-    roles: room.roles_json ? JSON.parse(room.roles_json) : ["General"],
+    candidates: roleCandidates ? (roleCandidates[roles[0]] ?? null) : null,
+    roleCandidates,
+    roles,
     allowWriteIns: room.allow_write_ins !== 0,
     allowAnonymous: room.allow_anonymous !== 0,
   });

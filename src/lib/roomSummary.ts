@@ -1,4 +1,5 @@
 import { getDb } from "@/lib/db";
+import { parseRoleCandidates } from "@/lib/candidates";
 import type { RoleSummary, Room, TallyEntry } from "@/lib/types";
 
 type VoteRow = {
@@ -14,6 +15,7 @@ type RoomRow = {
   candidates_json: string | null;
   roles_json: string | null;
   allow_write_ins: number | null;
+  allow_anonymous: number | null;
 };
 
 type RoomSummary = {
@@ -40,7 +42,7 @@ export const getRoomSummary = (code: string): RoomSummary | null => {
   const normalized = code.toUpperCase();
   const room = db
     .prepare(
-      "SELECT code, created_at, closed_at, candidates_json, roles_json, allow_write_ins FROM rooms WHERE code = ?"
+      "SELECT code, created_at, closed_at, candidates_json, roles_json, allow_write_ins, allow_anonymous FROM rooms WHERE code = ?"
     )
     .get(normalized) as RoomRow | undefined;
 
@@ -52,6 +54,7 @@ export const getRoomSummary = (code: string): RoomSummary | null => {
     )
     .all(normalized) as VoteRow[];
   const roles = parseRoles(room.roles_json);
+  const roleCandidates = parseRoleCandidates(room.candidates_json, roles);
   const roleMap = new Map<
     string,
     { role: string; grouped: Map<string, { name: string; count: number; voters: string[] }> }
@@ -107,9 +110,11 @@ export const getRoomSummary = (code: string): RoomSummary | null => {
       code: room.code,
       createdAt: room.created_at,
       closedAt: room.closed_at,
-      candidates: room.candidates_json ? JSON.parse(room.candidates_json) : null,
+      candidates: roleCandidates ? (roleCandidates[roles[0]] ?? null) : null,
+      roleCandidates,
       roles,
       allowWriteIns: room.allow_write_ins !== 0,
+      allowAnonymous: room.allow_anonymous !== 0,
     },
     roleTallies,
     totalVotes: votes.length,

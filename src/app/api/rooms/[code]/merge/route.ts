@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { voteEvents } from "@/lib/events";
+import { parseRoleCandidates, serializeRoleCandidates } from "@/lib/candidates";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,8 +17,8 @@ export async function POST(
   const roomCode = code.toUpperCase();
 
   const room = db
-    .prepare("SELECT candidates_json FROM rooms WHERE code = ?")
-    .get(roomCode) as { candidates_json?: string | null } | undefined;
+    .prepare("SELECT candidates_json, roles_json FROM rooms WHERE code = ?")
+    .get(roomCode) as { candidates_json?: string | null; roles_json?: string | null } | undefined;
 
   if (!room) {
     return NextResponse.json({ error: "Room not found" }, { status: 404 });
@@ -67,18 +68,37 @@ export async function POST(
   );
 
   if (room.candidates_json) {
-    const candidates = JSON.parse(room.candidates_json) as string[];
+    const roles = room.roles_json ? (JSON.parse(room.roles_json) as string[]) : ["General"];
+    const roleCandidatesMap = parseRoleCandidates(room.candidates_json, roles);
     const normalizedTarget = normalize(cleanedTarget);
-    const updated = candidates.filter(
-      (name) => !normalizedSources.includes(normalize(name))
-    );
-    if (!updated.some((name) => normalize(name) === normalizedTarget)) {
-      updated.push(cleanedTarget);
+
+    if (roleCandidatesMap && roleName && roleCandidatesMap[roleName]) {
+      const roleList = roleCandidatesMap[roleName];
+      const updated = roleList.filter(
+        (name) => !normalizedSources.includes(normalize(name))
+      );
+      if (!updated.some((name) => normalize(name) === normalizedTarget)) {
+        updated.push(cleanedTarget);
+      }
+      roleCandidatesMap[roleName] = updated;
+      db.prepare("UPDATE rooms SET candidates_json = ? WHERE code = ?").run(
+        serializeRoleCandidates(roleCandidatesMap),
+        roomCode
+      );
+    } else {
+      // Legacy flat array fallback
+      const candidates = JSON.parse(room.candidates_json) as string[];
+      const updated = candidates.filter(
+        (name) => !normalizedSources.includes(normalize(name))
+      );
+      if (!updated.some((name) => normalize(name) === normalizedTarget)) {
+        updated.push(cleanedTarget);
+      }
+      db.prepare("UPDATE rooms SET candidates_json = ? WHERE code = ?").run(
+        JSON.stringify(updated),
+        roomCode
+      );
     }
-    db.prepare("UPDATE rooms SET candidates_json = ? WHERE code = ?").run(
-      JSON.stringify(updated),
-      roomCode
-    );
   }
 
   voteEvents.emit("update", { code: roomCode });

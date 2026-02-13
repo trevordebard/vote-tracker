@@ -248,23 +248,75 @@ export default function HostRoom() {
                 Active role votes: {roleVotes}
               </p>
             </div>
-            {room.candidates?.length ? (
-              <div className="surface-soft rounded-2xl border border-border p-5">
-                <p className="text-xs uppercase tracking-[0.3em] text-muted">
-                  Candidates
-                </p>
-                <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted">
-                  {room.candidates.map((candidate) => (
-                    <span
-                      key={candidate}
-                      className="surface rounded-full border border-border px-3 py-1"
-                    >
-                      {candidate}
-                    </span>
+            {(() => {
+              const rc = room.roleCandidates;
+              if (!rc) {
+                return room.candidates?.length ? (
+                  <div className="surface-soft rounded-2xl border border-border p-5">
+                    <p className="text-xs uppercase tracking-[0.3em] text-muted">
+                      Candidates
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted">
+                      {room.candidates.map((candidate) => (
+                        <span
+                          key={candidate}
+                          className="surface rounded-full border border-border px-3 py-1"
+                        >
+                          {candidate}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ) : null;
+              }
+              const entries = Object.entries(rc).filter(([, cands]) => cands.length > 0);
+              if (entries.length === 0) return null;
+              const allSame =
+                entries.length > 1 &&
+                entries.every(
+                  ([, cands]) => JSON.stringify(cands) === JSON.stringify(entries[0][1])
+                );
+              if (allSame) {
+                return (
+                  <div className="surface-soft rounded-2xl border border-border p-5">
+                    <p className="text-xs uppercase tracking-[0.3em] text-muted">
+                      Candidates (all roles)
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted">
+                      {entries[0][1].map((candidate) => (
+                        <span
+                          key={candidate}
+                          className="surface rounded-full border border-border px-3 py-1"
+                        >
+                          {candidate}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                );
+              }
+              return (
+                <>
+                  {entries.map(([roleName, cands]) => (
+                    <div key={roleName} className="surface-soft rounded-2xl border border-border p-5">
+                      <p className="text-xs uppercase tracking-[0.3em] text-muted">
+                        Candidates — {roleName}
+                      </p>
+                      <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted">
+                        {cands.map((candidate) => (
+                          <span
+                            key={candidate}
+                            className="surface rounded-full border border-border px-3 py-1"
+                          >
+                            {candidate}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
                   ))}
-                </div>
-              </div>
-            ) : null}
+                </>
+              );
+            })()}
             <div className="surface-soft rounded-2xl border border-border p-5">
               <p className="text-xs uppercase tracking-[0.3em] text-muted">
                 Current leader ({currentRoleSummary?.role ?? "Role"})

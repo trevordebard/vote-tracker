@@ -89,14 +89,20 @@ export default function VoterRoom() {
 
   const isClosed = Boolean(room?.closedAt);
   const canVote = !isClosed && !submitted;
-  const candidates = room?.candidates ?? [];
   const allowWriteIns = room?.allowWriteIns ?? true;
   const allowAnonymous = room?.allowAnonymous ?? true;
-  const hasCandidateOptions = candidates.length > 0;
+
+  const getCandidatesForRole = (role: string): string[] => {
+    if (room?.roleCandidates?.[role]) return room.roleCandidates[role];
+    return room?.candidates ?? [];
+  };
+
   const canSubmit =
     canVote &&
-    (hasCandidateOptions || allowWriteIns) &&
-    roles.every((role) => Boolean((roleCandidates[role] ?? "").trim())) &&
+    roles.every((role) => {
+      const cands = getCandidatesForRole(role);
+      return (cands.length > 0 || allowWriteIns) && Boolean((roleCandidates[role] ?? "").trim());
+    }) &&
     (allowAnonymous || name.trim().length > 0);
 
   if (!normalized) return null;
@@ -185,127 +191,132 @@ export default function VoterRoom() {
                 )}
               </div>
 
-              {roles.map((role) => (
-                <section
-                  key={role}
-                  className="surface-soft flex flex-col gap-3 rounded-2xl border border-border p-4"
-                >
-                  <h2 className="text-lg font-[family:var(--font-display)] text-ink">
-                    {role}
-                  </h2>
-                  {hasCandidateOptions ? (
-                    <>
-                      <label className="text-xs uppercase tracking-[0.3em] text-muted">
-                        Choose a candidate
-                      </label>
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        {candidates.map((candidateName) => (
-                          <label
-                            key={`${role}-${candidateName}`}
-                            className="surface flex items-center gap-3 rounded-2xl border border-border px-4 py-3 text-sm text-ink"
-                          >
-                            <input
-                              type="radio"
-                              name={`candidate-${role}`}
-                              value={candidateName}
-                              checked={roleOption[role] === candidateName}
-                              onChange={() => {
-                                setRoleOption((current) => ({
-                                  ...current,
-                                  [role]: candidateName,
-                                }));
-                                setRoleCandidates((current) => ({
-                                  ...current,
-                                  [role]: candidateName,
-                                }));
-                                setRoleWriteIns((current) => ({
-                                  ...current,
-                                  [role]: "",
-                                }));
-                              }}
-                              disabled={!canVote}
-                            />
-                            <span>{candidateName}</span>
-                          </label>
-                        ))}
-                      </div>
-                      {allowWriteIns ? (
-                        <label className="surface flex flex-col gap-2 rounded-2xl border border-border px-4 py-3 text-sm text-ink">
-                          <div className="flex items-center gap-3">
-                            <input
-                              type="radio"
-                              name={`candidate-${role}`}
-                              value="other"
-                              checked={roleOption[role] === "other"}
-                              onChange={() => {
-                                setRoleOption((current) => ({
-                                  ...current,
-                                  [role]: "other",
-                                }));
-                                setRoleCandidates((current) => ({
-                                  ...current,
-                                  [role]: roleWriteIns[role] ?? "",
-                                }));
-                              }}
-                              disabled={!canVote}
-                            />
-                            <span>Write in another name</span>
-                          </div>
-                          {roleOption[role] === "other" ? (
-                            <input
-                              value={roleWriteIns[role] ?? ""}
-                              onChange={(event) => {
-                                const value = event.target.value;
-                                setRoleWriteIns((current) => ({
-                                  ...current,
-                                  [role]: value,
-                                }));
-                                setRoleCandidates((current) => ({
-                                  ...current,
-                                  [role]: value,
-                                }));
-                              }}
-                              placeholder={`Candidate name for ${role}`}
-                              disabled={!canVote}
-                              className="surface rounded-2xl border border-border px-3 py-2 text-sm text-ink outline-none"
-                            />
-                          ) : null}
+              {roles.map((role) => {
+                const candidatesForRole = getCandidatesForRole(role);
+                const hasCandidateOptions = candidatesForRole.length > 0;
+
+                return (
+                  <section
+                    key={role}
+                    className="surface-soft flex flex-col gap-3 rounded-2xl border border-border p-4"
+                  >
+                    <h2 className="text-lg font-[family:var(--font-display)] text-ink">
+                      {role}
+                    </h2>
+                    {hasCandidateOptions ? (
+                      <>
+                        <label className="text-xs uppercase tracking-[0.3em] text-muted">
+                          Choose a candidate
                         </label>
-                      ) : (
-                        <p className="text-xs text-muted">
-                          Write-in candidates are disabled for this room.
-                        </p>
-                      )}
-                    </>
-                  ) : allowWriteIns ? (
-                    <div className="flex flex-col gap-2">
-                      <label className="text-xs uppercase tracking-[0.3em] text-muted">
-                        Candidate name
-                      </label>
-                      <input
-                        value={roleCandidates[role] ?? ""}
-                        onChange={(event) =>
-                          setRoleCandidates((current) => ({
-                            ...current,
-                            [role]: event.target.value,
-                          }))
-                        }
-                        placeholder={
-                          roles.length === 1
-                            ? "Candidate name"
-                            : `Candidate name for ${role}`
-                        }
-                        disabled={!canVote}
-                        className="surface rounded-2xl border border-border px-4 py-3 text-ink outline-none transition focus:border-ink disabled:opacity-60"
-                      />
-                    </div>
-                  ) : (
-                    <div className="surface rounded-2xl border border-border px-4 py-3 text-sm text-muted">
-                      No candidates are available, and write-ins are disabled.
-                    </div>
-                  )}
-                </section>
-              ))}
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          {candidatesForRole.map((candidateName) => (
+                            <label
+                              key={`${role}-${candidateName}`}
+                              className="surface flex items-center gap-3 rounded-2xl border border-border px-4 py-3 text-sm text-ink"
+                            >
+                              <input
+                                type="radio"
+                                name={`candidate-${role}`}
+                                value={candidateName}
+                                checked={roleOption[role] === candidateName}
+                                onChange={() => {
+                                  setRoleOption((current) => ({
+                                    ...current,
+                                    [role]: candidateName,
+                                  }));
+                                  setRoleCandidates((current) => ({
+                                    ...current,
+                                    [role]: candidateName,
+                                  }));
+                                  setRoleWriteIns((current) => ({
+                                    ...current,
+                                    [role]: "",
+                                  }));
+                                }}
+                                disabled={!canVote}
+                              />
+                              <span>{candidateName}</span>
+                            </label>
+                          ))}
+                        </div>
+                        {allowWriteIns ? (
+                          <label className="surface flex flex-col gap-2 rounded-2xl border border-border px-4 py-3 text-sm text-ink">
+                            <div className="flex items-center gap-3">
+                              <input
+                                type="radio"
+                                name={`candidate-${role}`}
+                                value="other"
+                                checked={roleOption[role] === "other"}
+                                onChange={() => {
+                                  setRoleOption((current) => ({
+                                    ...current,
+                                    [role]: "other",
+                                  }));
+                                  setRoleCandidates((current) => ({
+                                    ...current,
+                                    [role]: roleWriteIns[role] ?? "",
+                                  }));
+                                }}
+                                disabled={!canVote}
+                              />
+                              <span>Write in another name</span>
+                            </div>
+                            {roleOption[role] === "other" ? (
+                              <input
+                                value={roleWriteIns[role] ?? ""}
+                                onChange={(event) => {
+                                  const value = event.target.value;
+                                  setRoleWriteIns((current) => ({
+                                    ...current,
+                                    [role]: value,
+                                  }));
+                                  setRoleCandidates((current) => ({
+                                    ...current,
+                                    [role]: value,
+                                  }));
+                                }}
+                                placeholder={`Candidate name for ${role}`}
+                                disabled={!canVote}
+                                className="surface rounded-2xl border border-border px-3 py-2 text-sm text-ink outline-none"
+                              />
+                            ) : null}
+                          </label>
+                        ) : (
+                          <p className="text-xs text-muted">
+                            Write-in candidates are disabled for this room.
+                          </p>
+                        )}
+                      </>
+                    ) : allowWriteIns ? (
+                      <div className="flex flex-col gap-2">
+                        <label className="text-xs uppercase tracking-[0.3em] text-muted">
+                          Candidate name
+                        </label>
+                        <input
+                          value={roleCandidates[role] ?? ""}
+                          onChange={(event) =>
+                            setRoleCandidates((current) => ({
+                              ...current,
+                              [role]: event.target.value,
+                            }))
+                          }
+                          placeholder={
+                            roles.length === 1
+                              ? "Candidate name"
+                              : `Candidate name for ${role}`
+                          }
+                          disabled={!canVote}
+                          className="surface rounded-2xl border border-border px-4 py-3 text-ink outline-none transition focus:border-ink disabled:opacity-60"
+                        />
+                      </div>
+                    ) : (
+                      <div className="surface rounded-2xl border border-border px-4 py-3 text-sm text-muted">
+                        No candidates are available, and write-ins are disabled.
+                      </div>
+                    )}
+                  </section>
+                );
+              })}
 
               <button
                 type="submit"
