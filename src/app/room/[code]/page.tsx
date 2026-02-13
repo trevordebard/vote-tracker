@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import Shell from "@/components/Shell";
 import type { Room } from "@/lib/types";
@@ -14,6 +14,7 @@ type VoteResponse = {
 };
 
 export default function VoterRoom() {
+  const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
   const fromHost = searchParams.get("from") === "host";
@@ -196,6 +197,9 @@ export default function VoterRoom() {
 
   const isClosed = Boolean(room?.closedAt);
   const canVote = !isClosed && !submitted;
+  const selectedCount = roles.filter((role) =>
+    Boolean((roleCandidates[role] ?? "").trim())
+  ).length;
   const canSubmit =
     canVote &&
     roles.every((role) => {
@@ -244,242 +248,283 @@ export default function VoterRoom() {
 
   return (
     <Shell>
-      <main className="flex flex-col items-center">
-        <section className="panel flex w-full max-w-3xl flex-col gap-6 p-8 reveal">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h1 className="text-3xl font-[family:var(--font-display)] text-ink">
-              Room {normalized}
-            </h1>
-            <p className="text-xs uppercase tracking-[0.3em] text-muted">
-              Complete one vote for each role
-            </p>
-          </div>
-          <p className="text-muted">
-            Your vote is sent to the host only. Other voters never see results.
+      <main className="flex flex-col gap-6">
+        <section className="panel flex flex-col gap-4 p-8 reveal">
+          <p className="chip w-fit">Voting room</p>
+          <h1 className="text-balance text-4xl font-[family:var(--font-display)] text-ink sm:text-5xl">
+            Room {normalized}
+          </h1>
+          <p className="max-w-2xl text-base text-muted sm:text-lg">
+            Complete one vote for each role. Your vote goes only to the host.
           </p>
+        </section>
 
-          {submitted ? (
-            <section className="surface-soft flex flex-col gap-4 rounded-3xl border border-border p-6 text-ink">
-              <p className="text-sm uppercase tracking-[0.3em] text-muted">
-                Vote submitted
-              </p>
-              <h2 className="text-2xl font-[family:var(--font-display)]">
-                Votes submitted. You&apos;re all set.
-              </h2>
-              {savedVotes.length > 0 && (
-                <div className="flex flex-col gap-2">
-                  {savedVoterName && savedVoterName !== "Anonymous" && (
-                    <p className="text-sm text-muted">
-                      Voted as <span className="font-medium text-ink">{savedVoterName}</span>
-                    </p>
-                  )}
-                  {savedVotes.map((vote) => (
-                    <div
-                      key={vote.roleName}
-                      className="flex items-center gap-2 text-sm"
-                    >
-                      <span className="text-muted">{vote.roleName}:</span>
-                      <span className="font-medium">{vote.candidateName}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {!isClosed && (
-                <button
-                  type="button"
-                  onClick={handleEdit}
-                  className="w-fit rounded-2xl border border-ink px-4 py-3 text-xs uppercase tracking-[0.3em] text-ink transition hover:-translate-y-0.5"
-                >
-                  Edit vote
-                </button>
-              )}
-              {isClosed && (
-                <p className="text-sm text-muted">
-                  Voting is closed for this room.
+        <section className="grid items-start gap-6 lg:grid-cols-[1.4fr_0.6fr]">
+          <section className="panel panel-primary flex flex-col gap-6 p-8 reveal reveal-delay-1">
+            {submitted ? (
+              <section className="surface-soft flex flex-col gap-4 rounded-3xl border border-border p-6 text-ink">
+                <p className="text-sm uppercase tracking-[0.3em] text-muted">
+                  Vote submitted
                 </p>
-              )}
-            </section>
-          ) : (
-            <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-              <div className="flex flex-col gap-2">
-                <label className="text-xs uppercase tracking-[0.3em] text-muted">
-                  Your name {allowAnonymous ? "(optional)" : "(required)"}
-                </label>
-                <input
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
-                  placeholder="Alex Johnson"
-                  disabled={!canVote}
-                  className="surface-soft rounded-2xl border border-border px-4 py-3 text-ink outline-none transition focus:border-ink disabled:opacity-60"
-                />
-                {(name.trim() || !allowAnonymous) && (
-                  <p className="text-xs text-muted">
-                    Your name is visible to the host but not to other voters.
+                <h2 className="text-2xl font-[family:var(--font-display)]">
+                  Votes submitted. You&apos;re all set.
+                </h2>
+                {savedVotes.length > 0 && (
+                  <div className="flex flex-col gap-2">
+                    {savedVoterName && savedVoterName !== "Anonymous" && (
+                      <p className="text-sm text-muted">
+                        Voted as <span className="font-medium text-ink">{savedVoterName}</span>
+                      </p>
+                    )}
+                    {savedVotes.map((vote) => (
+                      <div
+                        key={vote.roleName}
+                        className="flex items-center gap-2 text-sm"
+                      >
+                        <span className="text-muted">{vote.roleName}:</span>
+                        <span className="font-medium">{vote.candidateName}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {!isClosed && (
+                  <button
+                    type="button"
+                    onClick={handleEdit}
+                    className="w-fit rounded-2xl border border-ink px-4 py-3 text-xs uppercase tracking-[0.3em] text-ink transition hover:-translate-y-0.5"
+                  >
+                    Edit vote
+                  </button>
+                )}
+                {isClosed && (
+                  <p className="text-sm text-muted">
+                    Voting is closed for this room.
                   </p>
                 )}
-              </div>
-
-              {roles.map((role) => {
-                const candidatesForRole = getCandidatesForRole(role);
-                const hasCandidateOptions = candidatesForRole.length > 0;
-
-                return (
-                  <section
-                    key={role}
-                    className="surface-soft flex flex-col gap-3 rounded-2xl border border-border p-4"
-                  >
-                    <h2 className="text-lg font-[family:var(--font-display)] text-ink">
-                      {role}
-                    </h2>
-                    {hasCandidateOptions ? (
-                      <>
-                        <label className="text-xs uppercase tracking-[0.3em] text-muted">
-                          Choose a candidate
-                        </label>
-                        <div className="grid gap-3 sm:grid-cols-2">
-                          {candidatesForRole.map((candidateName) => (
-                            <label
-                              key={`${role}-${candidateName}`}
-                              className="surface flex items-center gap-3 rounded-2xl border border-border px-4 py-3 text-sm text-ink"
-                            >
-                              <input
-                                type="radio"
-                                name={`candidate-${role}`}
-                                value={candidateName}
-                                checked={roleOption[role] === candidateName}
-                                onChange={() => {
-                                  setRoleOption((current) => ({
-                                    ...current,
-                                    [role]: candidateName,
-                                  }));
-                                  setRoleCandidates((current) => ({
-                                    ...current,
-                                    [role]: candidateName,
-                                  }));
-                                  setRoleWriteIns((current) => ({
-                                    ...current,
-                                    [role]: "",
-                                  }));
-                                }}
-                                disabled={!canVote}
-                              />
-                              <span>{candidateName}</span>
-                            </label>
-                          ))}
-                        </div>
-                        {allowWriteIns ? (
-                          <label className="surface flex flex-col gap-2 rounded-2xl border border-border px-4 py-3 text-sm text-ink">
-                            <div className="flex items-center gap-3">
-                              <input
-                                type="radio"
-                                name={`candidate-${role}`}
-                                value="other"
-                                checked={roleOption[role] === "other"}
-                                onChange={() => {
-                                  setRoleOption((current) => ({
-                                    ...current,
-                                    [role]: "other",
-                                  }));
-                                  setRoleCandidates((current) => ({
-                                    ...current,
-                                    [role]: roleWriteIns[role] ?? "",
-                                  }));
-                                }}
-                                disabled={!canVote}
-                              />
-                              <span>Write in another name</span>
-                            </div>
-                            {roleOption[role] === "other" ? (
-                              <input
-                                value={roleWriteIns[role] ?? ""}
-                                onChange={(event) => {
-                                  const value = event.target.value;
-                                  setRoleWriteIns((current) => ({
-                                    ...current,
-                                    [role]: value,
-                                  }));
-                                  setRoleCandidates((current) => ({
-                                    ...current,
-                                    [role]: value,
-                                  }));
-                                }}
-                                placeholder={`Candidate name for ${role}`}
-                                disabled={!canVote}
-                                className="surface rounded-2xl border border-border px-3 py-2 text-sm text-ink outline-none"
-                              />
-                            ) : null}
-                          </label>
-                        ) : (
-                          <p className="text-xs text-muted">
-                            Write-in candidates are disabled for this room.
-                          </p>
-                        )}
-                      </>
-                    ) : allowWriteIns ? (
-                      <div className="flex flex-col gap-2">
-                        <label className="text-xs uppercase tracking-[0.3em] text-muted">
-                          Candidate name
-                        </label>
-                        <input
-                          value={roleCandidates[role] ?? ""}
-                          onChange={(event) =>
-                            setRoleCandidates((current) => ({
-                              ...current,
-                              [role]: event.target.value,
-                            }))
-                          }
-                          placeholder={
-                            roles.length === 1
-                              ? "Candidate name"
-                              : `Candidate name for ${role}`
-                          }
-                          disabled={!canVote}
-                          className="surface rounded-2xl border border-border px-4 py-3 text-ink outline-none transition focus:border-ink disabled:opacity-60"
-                        />
-                      </div>
-                    ) : (
-                      <div className="surface rounded-2xl border border-border px-4 py-3 text-sm text-muted">
-                        No candidates are available, and write-ins are disabled.
-                      </div>
+              </section>
+            ) : (
+              <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+                <section className="flex flex-col gap-3">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-ink text-xs font-medium text-on-ink">
+                      1
+                    </span>
+                    <label className="text-sm font-medium text-ink">
+                      Your name {allowAnonymous ? "(optional)" : "(required)"}
+                    </label>
+                  </div>
+                  <div className="ml-10 flex flex-col gap-2">
+                    <input
+                      value={name}
+                      onChange={(event) => setName(event.target.value)}
+                      placeholder="Alex Johnson"
+                      disabled={!canVote}
+                      className="surface-soft rounded-2xl border border-border px-4 py-3 text-ink outline-none transition focus:border-ink disabled:opacity-60"
+                    />
+                    {(name.trim() || !allowAnonymous) && (
+                      <p className="text-xs text-muted">
+                        Visible to the host, never to other voters.
+                      </p>
                     )}
-                  </section>
-                );
-              })}
+                  </div>
+                </section>
 
-              <button
-                type="submit"
-                disabled={!canSubmit || isSubmitting}
-                className="cta-primary rounded-2xl px-4 py-3 text-sm uppercase tracking-[0.3em] transition hover:-translate-y-0.5 hover:opacity-90 disabled:opacity-60"
-              >
-                {isSubmitting
-                  ? "Submitting..."
-                  : existingVoteIds.length > 0
-                    ? "Update votes"
-                    : "Submit votes"}
-              </button>
-              {isClosed && (
-                <p className="text-sm text-muted">
-                  Voting is closed for this room.
-                </p>
-              )}
-            </form>
-          )}
+                <section className="flex flex-col gap-3">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-ink text-xs font-medium text-on-ink">
+                      2
+                    </span>
+                    <p className="text-sm font-medium text-ink">Choose candidates</p>
+                  </div>
+                  <div className="ml-10 flex flex-col gap-4">
+                    {roles.map((role) => {
+                      const candidatesForRole = getCandidatesForRole(role);
+                      const hasCandidateOptions = candidatesForRole.length > 0;
 
-          {fromHost ? (
-            <Link
-              href={`/host/${normalized}`}
-              className="w-fit rounded-2xl border border-ink px-4 py-3 text-xs uppercase tracking-[0.3em] text-ink"
+                      return (
+                        <section
+                          key={role}
+                          className="surface-soft flex flex-col gap-3 rounded-2xl border border-border p-4"
+                        >
+                          <h2 className="text-lg font-[family:var(--font-display)] text-ink">
+                            {role}
+                          </h2>
+                          {hasCandidateOptions ? (
+                            <>
+                              <label className="text-xs uppercase tracking-[0.3em] text-muted">
+                                Choose a candidate
+                              </label>
+                              <div className="grid gap-3 sm:grid-cols-2">
+                                {candidatesForRole.map((candidateName) => (
+                                  <label
+                                    key={`${role}-${candidateName}`}
+                                    className="surface flex items-center gap-3 rounded-2xl border border-border px-4 py-3 text-sm text-ink"
+                                  >
+                                    <input
+                                      type="radio"
+                                      name={`candidate-${role}`}
+                                      value={candidateName}
+                                      checked={roleOption[role] === candidateName}
+                                      onChange={() => {
+                                        setRoleOption((current) => ({
+                                          ...current,
+                                          [role]: candidateName,
+                                        }));
+                                        setRoleCandidates((current) => ({
+                                          ...current,
+                                          [role]: candidateName,
+                                        }));
+                                        setRoleWriteIns((current) => ({
+                                          ...current,
+                                          [role]: "",
+                                        }));
+                                      }}
+                                      disabled={!canVote}
+                                    />
+                                    <span>{candidateName}</span>
+                                  </label>
+                                ))}
+                              </div>
+                              {allowWriteIns ? (
+                                <label className="surface flex flex-col gap-2 rounded-2xl border border-border px-4 py-3 text-sm text-ink">
+                                  <div className="flex items-center gap-3">
+                                    <input
+                                      type="radio"
+                                      name={`candidate-${role}`}
+                                      value="other"
+                                      checked={roleOption[role] === "other"}
+                                      onChange={() => {
+                                        setRoleOption((current) => ({
+                                          ...current,
+                                          [role]: "other",
+                                        }));
+                                        setRoleCandidates((current) => ({
+                                          ...current,
+                                          [role]: roleWriteIns[role] ?? "",
+                                        }));
+                                      }}
+                                      disabled={!canVote}
+                                    />
+                                    <span>Write in another name</span>
+                                  </div>
+                                  {roleOption[role] === "other" ? (
+                                    <input
+                                      value={roleWriteIns[role] ?? ""}
+                                      onChange={(event) => {
+                                        const value = event.target.value;
+                                        setRoleWriteIns((current) => ({
+                                          ...current,
+                                          [role]: value,
+                                        }));
+                                        setRoleCandidates((current) => ({
+                                          ...current,
+                                          [role]: value,
+                                        }));
+                                      }}
+                                      placeholder={`Candidate name for ${role}`}
+                                      disabled={!canVote}
+                                      className="surface rounded-2xl border border-border px-3 py-2 text-sm text-ink outline-none"
+                                    />
+                                  ) : null}
+                                </label>
+                              ) : (
+                                <p className="text-xs text-muted">
+                                  Write-in candidates are disabled for this room.
+                                </p>
+                              )}
+                            </>
+                          ) : allowWriteIns ? (
+                            <div className="flex flex-col gap-2">
+                              <label className="text-xs uppercase tracking-[0.3em] text-muted">
+                                Candidate name
+                              </label>
+                              <input
+                                value={roleCandidates[role] ?? ""}
+                                onChange={(event) =>
+                                  setRoleCandidates((current) => ({
+                                    ...current,
+                                    [role]: event.target.value,
+                                  }))
+                                }
+                                placeholder={
+                                  roles.length === 1
+                                    ? "Candidate name"
+                                    : `Candidate name for ${role}`
+                                }
+                                disabled={!canVote}
+                                className="surface rounded-2xl border border-border px-4 py-3 text-ink outline-none transition focus:border-ink disabled:opacity-60"
+                              />
+                            </div>
+                          ) : (
+                            <div className="surface rounded-2xl border border-border px-4 py-3 text-sm text-muted">
+                              No candidates are available, and write-ins are disabled.
+                            </div>
+                          )}
+                        </section>
+                      );
+                    })}
+                  </div>
+                </section>
+
+                <section className="flex flex-col gap-3">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-ink text-xs font-medium text-on-ink">
+                      3
+                    </span>
+                    <p className="text-sm font-medium text-ink">Submit your vote</p>
+                  </div>
+                  <div className="ml-10 flex flex-col gap-3">
+                    <button
+                      type="submit"
+                      disabled={!canSubmit || isSubmitting}
+                      className="cta-primary rounded-2xl px-4 py-3 text-sm uppercase tracking-[0.3em] transition hover:-translate-y-0.5 hover:opacity-90 disabled:opacity-60"
+                    >
+                      {isSubmitting
+                        ? "Submitting..."
+                        : existingVoteIds.length > 0
+                          ? "Update votes"
+                          : "Submit votes"}
+                    </button>
+                    {isClosed && (
+                      <p className="text-sm text-muted">
+                        Voting is closed for this room.
+                      </p>
+                    )}
+                  </div>
+                </section>
+              </form>
+            )}
+          </section>
+
+          <section className="panel flex flex-col gap-4 p-8 reveal reveal-delay-2">
+            <p className="text-sm text-muted">Room snapshot</p>
+            <h2 className="text-2xl font-[family:var(--font-display)] text-ink">
+              Keep track while you vote.
+            </h2>
+            <div className="surface-soft flex flex-col gap-2 rounded-2xl border border-border p-4 text-sm">
+              <p className="text-muted">Roles</p>
+              <p className="text-lg text-ink">{roles.length}</p>
+            </div>
+            <div className="surface-soft flex flex-col gap-2 rounded-2xl border border-border p-4 text-sm">
+              <p className="text-muted">Current progress</p>
+              <p className="text-lg text-ink">
+                {submitted ? "Submitted" : `${selectedCount}/${roles.length} selected`}
+              </p>
+            </div>
+            <div className="surface-soft flex flex-col gap-2 rounded-2xl border border-border p-4 text-sm">
+              <p className="text-muted">Voter identity</p>
+              <p className="text-lg text-ink">
+                {allowAnonymous ? "Name optional" : "Name required"}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => router.push(fromHost ? `/host/${normalized}` : "/")}
+              className="w-fit rounded-2xl border border-ink px-4 py-3 text-xs uppercase tracking-[0.3em] text-ink transition hover:-translate-y-0.5"
             >
-              Back to dashboard
-            </Link>
-          ) : (
-            <Link
-              href="/"
-              className="w-fit rounded-2xl border border-ink px-4 py-3 text-xs uppercase tracking-[0.3em] text-ink"
-            >
-              Back to home
-            </Link>
-          )}
+              {fromHost ? "Back to dashboard" : "Back to home"}
+            </button>
+          </section>
         </section>
       </main>
     </Shell>
