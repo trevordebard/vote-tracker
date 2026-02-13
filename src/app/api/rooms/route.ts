@@ -53,6 +53,8 @@ export async function POST(req: Request) {
   const roles = sanitizeRoles(body?.roles);
   const allowWriteIns =
     typeof body?.allowWriteIns === "boolean" ? body.allowWriteIns : true;
+  const allowAnonymous =
+    typeof body?.allowAnonymous === "boolean" ? body.allowAnonymous : true;
 
   let code = generateCode();
   const exists = db.prepare("SELECT 1 FROM rooms WHERE code = ?");
@@ -64,8 +66,8 @@ export async function POST(req: Request) {
   const candidatesJson = candidates ? JSON.stringify(candidates) : null;
   const rolesJson = JSON.stringify(roles);
   db.prepare(
-    "INSERT INTO rooms (code, created_at, candidates_json, roles_json, allow_write_ins) VALUES (?, ?, ?, ?, ?)"
-  ).run(code, createdAt, candidatesJson, rolesJson, allowWriteIns ? 1 : 0);
+    "INSERT INTO rooms (code, created_at, candidates_json, roles_json, allow_write_ins, allow_anonymous) VALUES (?, ?, ?, ?, ?, ?)"
+  ).run(code, createdAt, candidatesJson, rolesJson, allowWriteIns ? 1 : 0, allowAnonymous ? 1 : 0);
 
   return NextResponse.json({
     code,
@@ -74,5 +76,6 @@ export async function POST(req: Request) {
     candidates: candidates ?? null,
     roles,
     allowWriteIns,
+    allowAnonymous,
   });
 }

@@ -12,6 +12,7 @@ export default function HostLanding() {
   const [existingRoomCode, setExistingRoomCode] = useState("");
   const [isCreating, setIsCreating] = useState(false);
   const [allowWriteIns, setAllowWriteIns] = useState(true);
+  const [allowAnonymous, setAllowAnonymous] = useState(true);
 
   const candidates = candidatesText
     .split(/[\n,]+/)
@@ -32,7 +33,7 @@ export default function HostLanding() {
     const response = await fetch("/api/rooms", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ candidates, roles, allowWriteIns }),
+      body: JSON.stringify({ candidates, roles, allowWriteIns, allowAnonymous }),
     });
     setIsCreating(false);
     if (!response.ok) return;
@@ -73,6 +74,14 @@ export default function HostLanding() {
               onChange={(event) => setAllowWriteIns(event.target.checked)}
             />
             Allow write-in candidates
+          </label>
+          <label className="surface-soft flex items-center gap-3 rounded-2xl border border-border px-4 py-3 text-sm text-ink">
+            <input
+              type="checkbox"
+              checked={allowAnonymous}
+              onChange={(event) => setAllowAnonymous(event.target.checked)}
+            />
+            Allow anonymous voting
           </label>
           <div className="flex flex-col gap-3 text-xs text-muted">
             <label className="uppercase tracking-[0.3em]">

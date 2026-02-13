@@ -4,6 +4,7 @@ export type Room = {
   closedAt?: string | null;
   candidates?: string[] | null;
   allowWriteIns?: boolean | null;
+  allowAnonymous?: boolean | null;
   roles?: string[] | null;
 };
 

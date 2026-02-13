@@ -86,11 +86,13 @@ export default function VoterRoom() {
   const canVote = !isClosed && !submitted;
   const candidates = room?.candidates ?? [];
   const allowWriteIns = room?.allowWriteIns ?? true;
+  const allowAnonymous = room?.allowAnonymous ?? true;
   const hasCandidateOptions = candidates.length > 0;
   const canSubmit =
     canVote &&
     (hasCandidateOptions || allowWriteIns) &&
-    roles.every((role) => Boolean((roleCandidates[role] ?? "").trim()));
+    roles.every((role) => Boolean((roleCandidates[role] ?? "").trim())) &&
+    (allowAnonymous || name.trim().length > 0);
 
   if (!normalized) return null;
 
@@ -162,7 +164,7 @@ export default function VoterRoom() {
             <form onSubmit={handleSubmit} className="flex flex-col gap-5">
               <div className="flex flex-col gap-2">
                 <label className="text-xs uppercase tracking-[0.3em] text-muted">
-                  Your name (optional)
+                  Your name {allowAnonymous ? "(optional)" : "(required)"}
                 </label>
                 <input
                   value={name}
