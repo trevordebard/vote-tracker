@@ -10,7 +10,7 @@ export default defineConfig({
   webServer: {
     command: "npm run build && npm run start",
     url: "http://localhost:3000",
-    reuseExistingServer: false,
+    reuseExistingServer: true,
     timeout: 120_000,
   },
 });
